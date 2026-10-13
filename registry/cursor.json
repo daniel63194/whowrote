@@ -23,6 +23,20 @@
       "pattern": "\\bcursor\\.com/(?:assets/images/)?open-in-cursor"
     }
   ],
+  "files": [
+    ".cursorrules",
+    ".cursor/**",
+    ".cursorignore"
+  ],
+  "hints": [
+    {
+      "all": [
+        "^cursor/"
+      ],
+      "in": "branch",
+      "note": "branch prefix Cursor's cloud agents use, but also a common word"
+    }
+  ],
   "models": [],
   "evidence": [
     "https://cursor.com/docs/integrations/git",
@@ -67,6 +81,25 @@
         "message": "Handle empty config\n\nMade with [Cursor](https://cursor.com)"
       },
       "verdict": "ai-assisted"
+    },
+    {
+      "pullRequest": {
+        "author": {
+          "login": "janedoe",
+          "type": "User"
+        },
+        "branch": "cursor/fix-blink-rate",
+        "title": "Fix cursor blink rate",
+        "body": ""
+      },
+      "verdict": "human",
+      "hint": true
+    },
+    {
+      "files": [
+        ".cursor/rules/style.mdc"
+      ],
+      "setup": true
     }
   ]
 }

@@ -15,6 +15,10 @@
   "names": [],
   "trailers": [],
   "footers": [],
+  "files": [
+    ".clinerules",
+    ".clinerules/**"
+  ],
   "models": [],
   "evidence": [
     "https://github.com/cline/cline/commits/main"
@@ -26,6 +30,12 @@
         "message": "fix: repair webview rebase\n\nCo-authored-by: Cline Agent <cline-agent@users.noreply.github.com>"
       },
       "verdict": "ai-assisted"
+    },
+    {
+      "files": [
+        ".clinerules/style.md"
+      ],
+      "setup": true
     }
   ]
 }

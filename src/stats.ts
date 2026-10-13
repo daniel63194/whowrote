@@ -1,3 +1,4 @@
+import type { AgentSetup } from './setup.js';
 import type { Result, ToolKind, Verdict } from './types.js';
 
 export const VERDICTS: readonly Verdict[] = ['human', 'ai-assisted', 'ai-agent', 'bot'];
@@ -11,6 +12,14 @@ export interface ToolCount {
   kind: ToolKind;
   commits: number;
   models: { model: string; commits: number }[];
+  /** Lines attributed by git notes (git-ai, Agent Trace), when there are any. */
+  lines?: number;
+}
+
+export interface HintCount {
+  note: string;
+  tool?: string;
+  commits: number;
 }
 
 export interface Period {
@@ -22,12 +31,18 @@ export interface Period {
 export interface Summary {
   total: number;
   verdicts: Counts;
+  /** Of the `human` commits, how many declare that no AI was used (`AI-assisted: no`). */
+  declaredHuman: number;
   /** AI tools, most commits first. A commit can involve more than one tool. */
   tools: ToolCount[];
   /** Commits with AI involvement disclosed only through an unnamed tool, e.g. `Assisted-by: GPT-5.4`. */
   otherAI: number;
   /** Bots by name, most commits first. */
   bots: { name: string; commits: number }[];
+  /** Weak signals among commits with no AI disclosed, most common first. They are not counted as AI. */
+  hints: HintCount[];
+  /** AI tools the repository is configured for (from its files), when known. */
+  setup?: AgentSetup[];
   periods?: Period[];
   /** Committer dates of the oldest and newest commit seen, ISO 8601. */
   first?: string;
@@ -63,7 +78,9 @@ export class Tally {
   private readonly verdicts = zero();
   private readonly tools = new Map<string, ToolCount & { modelMap: Map<string, number> }>();
   private otherAI = 0;
+  private declaredHuman = 0;
   private readonly bots = new Map<string, number>();
+  private readonly hints = new Map<string, HintCount>();
   private readonly periods = new Map<string, Period>();
   private first: string | undefined;
   private last: string | undefined;
@@ -82,6 +99,17 @@ export class Tally {
       }
       c.commits++;
       for (const m of t.models) c.modelMap.set(m, (c.modelMap.get(m) ?? 0) + 1);
+      if (t.lines !== undefined) c.lines = (c.lines ?? 0) + t.lines;
+    }
+    if (r.declaredHuman) this.declaredHuman++;
+    if (r.verdict === 'human') {
+      // Count each hint once per commit.
+      for (const key of new Set(r.hints.map((h) => `${h.tool ?? ''}\u0000${h.note}`))) {
+        const [tool, note] = key.split('\u0000') as [string, string];
+        const h = this.hints.get(key) ?? { note, ...(tool ? { tool } : {}), commits: 0 };
+        h.commits++;
+        this.hints.set(key, h);
+      }
     }
     if (r.ai && !r.tools.some((t) => t.kind !== 'bot')) this.otherAI++;
     if (r.verdict === 'bot') {
@@ -116,6 +144,8 @@ export class Tally {
         .sort((a, b) => b.commits - a.commits || a.name.localeCompare(b.name)),
       otherAI: this.otherAI,
       bots: [...this.bots].map(([name, commits]) => ({ name, commits })).sort((a, b) => b.commits - a.commits || a.name.localeCompare(b.name)),
+      declaredHuman: this.declaredHuman,
+      hints: [...this.hints.values()].sort((a, b) => b.commits - a.commits || a.note.localeCompare(b.note)),
     };
     if (this.unit) s.periods = [...this.periods.values()].sort((a, b) => (a.period < b.period ? -1 : a.period > b.period ? 1 : 0));
     if (this.first !== undefined) s.first = this.first;

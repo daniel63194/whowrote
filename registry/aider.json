@@ -18,6 +18,12 @@
   ],
   "trailers": [],
   "footers": [],
+  "files": [
+    ".aider.conf.yml",
+    ".aiderignore",
+    ".aider.chat.history.md",
+    ".aider.input.history"
+  ],
   "models": [
     "^aider \\((?<model>[^()]+)\\)$"
   ],
@@ -42,6 +48,12 @@
       "models": [
         "anthropic/claude-sonnet-4"
       ]
+    },
+    {
+      "files": [
+        ".aider.conf.yml"
+      ],
+      "setup": true
     }
   ]
 }

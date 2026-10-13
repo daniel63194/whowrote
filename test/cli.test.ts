@@ -72,7 +72,7 @@ describe('whowrote (history)', () => {
     expect(r.code).toBe(0);
     expect(r.stderr).toBe('');
     expect(r.stdout).toContain('whowrote · demo · 6 commits · 2026-07-01 → 2026-10-01');
-    expect(r.stdout).toMatch(/Human\s+2\s+33\.3%/);
+    expect(r.stdout).toMatch(/No AI disclosed\s+2\s+33\.3%/);
     expect(r.stdout).toMatch(/AI-assisted\s+2\s+33\.3%/);
     expect(r.stdout).toMatch(/AI agent\s+1\s+16\.7%/);
     expect(r.stdout).toMatch(/Bot\s+1\s+16\.7%/);
@@ -97,8 +97,8 @@ describe('whowrote (history)', () => {
 
   it('lists AI and bot commits with --commits', () => {
     const r = run(['--commits']);
-    expect(r.stdout).toContain(`${shas.claude!.slice(0, 10)}  AI-assisted  Claude`);
-    expect(r.stdout).toContain(`${shas.bot!.slice(0, 10)}  Bot          Dependabot`);
+    expect(r.stdout).toContain(`${shas.claude!.slice(0, 10)}  AI-assisted      Claude`);
+    expect(r.stdout).toContain(`${shas.bot!.slice(0, 10)}  Bot              Dependabot`);
     expect(r.stdout).not.toContain(shas.human!.slice(0, 10));
   });
 
@@ -177,7 +177,7 @@ describe('whowrote actor / tools', () => {
     expect(r.code).toBe(0);
     expect(r.stdout).toMatch(/dependabot\[bot\]\s+Bot\s+Dependabot \(GitHub\)/);
     expect(r.stdout).toMatch(/Copilot\s+AI agent\s+GitHub Copilot/);
-    expect(r.stdout).toMatch(/Jane Doe <jane@example.com>\s+Human/);
+    expect(r.stdout).toMatch(/Jane Doe <jane@example.com>\s+No AI disclosed/);
     expect(r.stdout).toMatch(/acme\[bot\]\s+Bot\s+unlisted bot/);
     expect(JSON.parse(run(['actor', '--format', 'json', 'claude[bot]']).stdout)[0]).toMatchObject({ input: 'claude[bot]', verdict: 'ai-agent' });
     expect(run(['actor', '--fail-on', 'bot', 'renovate[bot]']).code).toBe(1);
@@ -204,7 +204,7 @@ describe('whowrote pr', () => {
     expect(r.code).toBe(0);
     expect(r.stdout).toContain('#7 Fix flaky test');
     expect(r.stdout).toMatch(/verdict\s+AI-assisted/);
-    expect(readFileSync(output, 'utf8')).toBe('verdict=ai-assisted\nai=true\ntools=claude\n');
+    expect(readFileSync(output, 'utf8')).toBe('verdict=ai-assisted\nai=true\ntools=claude\ndeclared-human=false\n');
   });
 
   it('reads $GITHUB_EVENT_PATH, and the commits when they are in the clone', () => {
@@ -243,7 +243,7 @@ describe('whowrote pr', () => {
     const file = join(dir, 'nope.json');
     writeFileSync(file, '{"hello":1}');
     expect(run(['pr', '--event', file]).code).toBe(2);
-    expect(run(['pr']).stderr).toContain('pr needs --event');
+    expect(run(['pr']).stderr).toContain('pr needs a pull request');
     expect(run(['pr', '--event', join(dir, 'missing.json')]).code).toBe(2);
   });
 });

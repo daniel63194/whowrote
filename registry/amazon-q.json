@@ -1,0 +1,33 @@
+{
+  "id": "amazon-q",
+  "name": "Amazon Q Developer",
+  "vendor": "Amazon Web Services",
+  "kind": "ai-agent",
+  "url": "https://aws.amazon.com/q/developer/",
+  "description": "Amazon Q Developer in the IDE and on GitHub. Recognised by its project rules; its commit signals still need evidence.",
+  "aliases": [
+    "amazon q",
+    "amazon q developer",
+    "q developer"
+  ],
+  "logins": [],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "files": [
+    ".amazonq/**"
+  ],
+  "models": [],
+  "evidence": [
+    "https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/context-project-rules.html"
+  ],
+  "examples": [
+    {
+      "files": [
+        ".amazonq/rules/cdk.md"
+      ],
+      "setup": true
+    }
+  ]
+}

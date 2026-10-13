@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## Unreleased
 
+## 0.2.0
+
+Finds AI involvement that commit messages don't show, without guessing.
+
+- **GitHub pull requests.** `whowrote pr <number|owner/repo#n|url>` reads a pull request from GitHub. `--github` reads the pull request of every squash-merged commit in a history, in batches through GraphQL, so an agent's pull request (author, branch, description) counts even when the squash commit hides it. `explain --github` looks up each commit's pull request. `whowrote pr --event` lists the commits through the API when they aren't in the clone.
+- **Agent branches.** `copilot/…` and `claude/…` branches, in pull requests and in merge commit messages, are evidence. New `branch` and `pr-author` signals.
+- **Attribution notes.** git-ai authorship logs (`refs/notes/ai`, read by default) and Agent Trace records (`--notes <ref>`) give the tool, model and line counts. New `note` signal, `lines` on evidence and tools, and `parseNotes()`.
+- **Agent setup.** Reports list the AI tools a repository is configured for, from files like `CLAUDE.md`, `.cursor/rules/`, `.github/copilot-instructions.md` and `AGENTS.md`. New `detectAgentSetup()`, and registry entries for Kiro, Amazon Q Developer and Junie, recognised by their config files.
+- **Hints.** `--hints` reports weak signals separately (changes to agent config, Claude Code's PR layout, `cursor/`, `codex/` and `devin/` branches). They never change a verdict. New `hints` on results.
+- **Declarations.** `AI-assisted: no`, `AI: none` and similar, or an Agent Trace record that credits only people, mark a result `declaredHuman`. Reports show "Declared no AI", and the Action has a `declared-human` output.
+- Reports call the `human` verdict "No AI disclosed", which is what it means. The verdict values are unchanged.
+- The subject line is no longer read for trailers, so `ai: add streaming` is a commit scope, not a disclosure.
+- Registry: `branches`, `files` and `hints` fields; `windsurf` and `cascade` aliases for Devin's editor agent, `gemini` for Gemini CLI.
+- Action: `github` and `hints` inputs.
+
 ## 0.1.0
 
 First release.

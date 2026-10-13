@@ -28,6 +28,14 @@ inputs:
   by:
     description: In `history` mode, add a breakdown by week, month, quarter or year.
     default: ''
+  github:
+    description: >-
+      In `history` mode, also read each squash-merged commit's pull request on GitHub (author, description,
+      branch), which finds agent pull requests that squash merges hide. Uses `token`.
+    default: 'false'
+  hints:
+    description: Also report weak signals (changes to agent config files, agent pull request layouts). They never change a verdict.
+    default: 'false'
   summary:
     description: Write the report to the job summary.
     default: 'true'
@@ -48,6 +56,9 @@ outputs:
   tools:
     description: In `pr` mode, comma-separated registry ids of the tools involved, e.g. `claude,github-copilot`.
     value: ${{ steps.run.outputs.tools }}
+  declared-human:
+    description: In `pr` mode, `true` when the pull request declares that no AI was used (e.g. `AI-assisted: no`).
+    value: ${{ steps.run.outputs.declared-human }}
 
 runs:
   using: composite
@@ -63,6 +74,8 @@ runs:
         SINCE: ${{ inputs.since }}
         RANGE: ${{ inputs.range }}
         BY: ${{ inputs.by }}
+        GITHUB_MODE: ${{ inputs.github }}
+        HINTS: ${{ inputs.hints }}
         SUMMARY: ${{ inputs.summary }}
         VERSION: ${{ inputs.version }}
         GH_TOKEN: ${{ inputs.token }}
@@ -80,6 +93,7 @@ runs:
         args=()
         if [[ -n "$FAIL_ON" ]]; then args+=(--fail-on "$FAIL_ON"); fi
         if [[ "$SUMMARY" == "true" && -n "${GITHUB_STEP_SUMMARY:-}" ]]; then args+=(--summary "$GITHUB_STEP_SUMMARY"); fi
+        if [[ "$HINTS" == "true" ]]; then args+=(--hints); fi
         case "$command" in
           pr)
             if [[ -z "$PR_NUMBER" ]]; then
@@ -91,6 +105,7 @@ runs:
           history)
             if [[ -n "$SINCE" ]]; then args+=(--since "$SINCE"); fi
             if [[ -n "$BY" ]]; then args+=(--by "$BY"); fi
+            if [[ "$GITHUB_MODE" == "true" ]]; then args+=(--github --repo "$REPO"); fi
             if [[ -n "$RANGE" ]]; then args+=("$RANGE"); fi
             ;;
           *)

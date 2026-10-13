@@ -17,6 +17,11 @@
   "names": [],
   "trailers": [],
   "footers": [],
+  "files": [
+    "opencode.json",
+    "opencode.jsonc",
+    ".opencode/**"
+  ],
   "models": [],
   "evidence": [
     "https://opencode.ai/docs/github",
@@ -36,6 +41,12 @@
         "message": "fix(app): include subagent sessions in cost (#55052)"
       },
       "verdict": "ai-agent"
+    },
+    {
+      "files": [
+        "opencode.json"
+      ],
+      "setup": true
     }
   ]
 }

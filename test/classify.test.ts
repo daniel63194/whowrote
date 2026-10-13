@@ -56,7 +56,7 @@ describe('looksLikeBot', () => {
 
 describe('classifyCommit', () => {
   it('calls an undisclosed commit human, with no evidence', () => {
-    expect(commit('Fix typo')).toEqual({ verdict: 'human', ai: false, tools: [], evidence: [] });
+    expect(commit('Fix typo')).toEqual({ verdict: 'human', ai: false, declaredHuman: false, tools: [], evidence: [], hints: [] });
   });
 
   it('credits AI co-authors and keeps their model', () => {

@@ -1,0 +1,31 @@
+{
+  "id": "junie",
+  "name": "Junie",
+  "vendor": "JetBrains",
+  "kind": "ai-agent",
+  "url": "https://www.jetbrains.com/junie/",
+  "description": "JetBrains' coding agent. Recognised by its guidelines folder; its commit signals still need evidence.",
+  "aliases": [
+    "junie"
+  ],
+  "logins": [],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "files": [
+    ".junie/**"
+  ],
+  "models": [],
+  "evidence": [
+    "https://github.com/JetBrains/junie-guidelines"
+  ],
+  "examples": [
+    {
+      "files": [
+        ".junie/guidelines.md"
+      ],
+      "setup": true
+    }
+  ]
+}

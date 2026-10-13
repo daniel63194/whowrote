@@ -10,9 +10,10 @@ You can expect an acknowledgement within 3 working days and a plan within 10. Fi
 
 ## In scope
 
-- A commit message, identity or pull request body that makes whowrote hang, use excessive memory, or throw (for example a regular expression that backtracks).
+- A commit message, identity, pull request body, branch name or git note that makes whowrote hang, use excessive memory, or throw (for example a regular expression that backtracks).
 - Terminal escape sequences or Markdown that get through to the terminal, the job summary or a label.
-- Command or argument injection into `git`, through revisions, paths or Action inputs.
+- Command or argument injection into `git`, through revisions, paths, notes refs or Action inputs.
+- A GitHub token sent anywhere other than the GitHub API that whowrote was configured to use (`api.github.com`, `WHOWROTE_GITHUB_API`, or `GITHUB_API_URL` and `GITHUB_GRAPHQL_URL` in Actions).
 - The GitHub Action labelling or failing a pull request it should not, because of input from the pull request.
 
 ## Not a vulnerability

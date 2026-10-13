@@ -19,7 +19,8 @@ const fragment = fc.constantFrom(
   'Made-with: ', 'Generated-by: ', '🤖 Generated with [', 'Claude Code', '](https://claude.com/claude-code)',
   '> This pull request was created with GitHub Copilot.', 'Made with [Cursor', 'Copilot', '(aider)', '[bot]',
   '@users.noreply.github.com', '198982749+', 'https://app.devin.ai/sessions/', 'chatgpt.com/codex/tasks/task_',
-  'Amp-Thread-ID: ', 'Claude-Session: ', '\n', '\r\n', '\n\n', ' ', ':', '<', '>', '(', ')', '[', ']', '\u001b[31m', '\u202e', '\0',
+  'Amp-Thread-ID: ', 'Claude-Session: ', 'AI-assisted: no', 'copilot/', 'claude/', 'Merge pull request #1 from o/', '## Summary', '## Test plan',
+  '  abc 1-5,7', '---', '{"schema_version":"authorship/3.0.0","prompts":{"abc":{"agent_id":{"tool":"cursor"}}}}', 'CLAUDE.md', '.cursor/', '\n', '\r\n', '\n\n', ' ', ':', '<', '>', '(', ')', '[', ']', '\u001b[31m', '\u202e', '\0',
 );
 const text = fc.oneof(fc.string({ maxLength: 300 }), fc.array(fragment, { maxLength: 40 }).map((a) => a.join('')));
 const identity = fc.oneof(
@@ -41,14 +42,19 @@ function assertConsistent(r: Result): void {
   // Only "code" evidence names tools in the result.
   const fromEvidence = new Set(r.evidence.filter((e) => e.tool && e.scope === 'code').map((e) => e.tool));
   expect(new Set(r.tools.map((t) => t.id))).toEqual(fromEvidence);
-  if (r.verdict === 'human') expect(r.evidence.some((e) => e.scope === 'code')).toBe(false);
+  if (r.verdict === 'human') expect(r.evidence.some((e) => e.scope === 'code' && e.kind !== 'human')).toBe(false);
+  if (r.declaredHuman) expect(r.verdict).toBe('human');
+  for (const h of r.hints) {
+    expect(['agent-config', 'branch', 'text']).toContain(h.hint);
+    if (h.tool !== undefined) expect(IDS.has(h.tool)).toBe(true);
+  }
 }
 
 describe('fuzz: classification', () => {
   it('classifies any commit consistently', () => {
     fc.assert(
-      fc.property(text, identity, fc.option(identity), (message, author, committer) => {
-        assertConsistent(classifyCommit({ message, author, committer }));
+      fc.property(text, identity, fc.option(identity), fc.option(text), fc.array(text, { maxLength: 4 }), fc.option(fc.record({ author: identity, body: text, branch: text })), (message, author, committer, notes, files, pullRequest) => {
+        assertConsistent(classifyCommit({ message, author, committer, notes, files, pullRequest }));
       }),
       RUNS,
     );
@@ -56,8 +62,8 @@ describe('fuzz: classification', () => {
 
   it('classifies any pull request and actor consistently', () => {
     fc.assert(
-      fc.property(identity, fc.option(text), fc.option(text), fc.array(fc.record({ message: text, author: identity }), { maxLength: 3 }), (author, title, body, commits) => {
-        assertConsistent(classifyPullRequest({ author, title, body, commits }));
+      fc.property(identity, fc.option(text), fc.option(text), fc.option(text), fc.array(fc.record({ message: text, author: identity, notes: text }), { maxLength: 3 }), (author, title, body, branch, commits) => {
+        assertConsistent(classifyPullRequest({ author, title, body, branch, commits }));
         assertConsistent(classifyActor(author));
       }),
       RUNS,
@@ -98,18 +104,21 @@ describe('fuzz: crafted input stays fast', () => {
     big('Assisted-by: Claude:'),
     big('https://cursor.com/agents'),
     big('(aider'),
+    big('## Summary\n'),
+    big('  abc 1-'),
+    big('{"files":[{"conversations":['),
     `${big('x')}\n\nCo-Authored-By: Claude <noreply@anthropic.com>`,
   ];
 
   it.each(attacks.map((a, i) => [i, a] as const))('message %i is classified in well under a second', (_i, message) => {
     const start = performance.now();
-    classifyCommit({ message, author: message.slice(0, 5000), committer: message.slice(0, 5000) });
+    classifyCommit({ message, author: message.slice(0, 5000), committer: message.slice(0, 5000), notes: message, files: [message.slice(0, 5000)], pullRequest: { body: message, branch: message.slice(0, 300) } });
     classifyPullRequest({ author: message.slice(0, 5000), title: message.slice(0, 5000), body: message });
     expect(performance.now() - start).toBeLessThan(1000);
   });
 
   it('every registry pattern runs in linear time on long input', () => {
-    const patterns = REGISTRY.flatMap((e) => [...e.names, ...(e.nameMarkers ?? []), ...e.models, ...e.footers.map((f) => f.pattern)]);
+    const patterns = REGISTRY.flatMap((e) => [...e.names, ...(e.nameMarkers ?? []), ...e.models, ...e.footers.map((f) => f.pattern), ...(e.branches ?? []), ...(e.hints ?? []).flatMap((h) => h.all)]);
     for (const p of patterns) {
       const re = new RegExp(p, 'iu');
       for (const unit of [' ', 'a', '(', '[', '1.', 'Claude ', 'aider (']) {

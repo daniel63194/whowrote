@@ -72,8 +72,19 @@ interface Options {
 
 const useColor = (flag: boolean): boolean => flag && process.stdout.isTTY === true && !process.env['NO_COLOR'];
 
+// When the reader goes away (`whowrote tools | head -n 1`, `| grep -q …`), stop writing quietly
+// instead of crashing with EPIPE. The command still finishes, so its exit code (e.g. --fail-on) holds.
+let stdoutClosed = false;
+process.stdout.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EPIPE' || err.code === 'ERR_STREAM_DESTROYED') {
+    stdoutClosed = true;
+    return;
+  }
+  throw err;
+});
+
 function write(s: string): void {
-  process.stdout.write(s);
+  if (!stdoutClosed) process.stdout.write(s);
 }
 
 function subject(message: string): string {

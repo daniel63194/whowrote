@@ -1,6 +1,6 @@
 {
   "name": "whowrote",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Tell human, bot and AI-agent commits and pull requests apart, from what they disclose: Co-authored-by trailers, agent accounts, agent branches, session links, git-ai and Agent Trace notes. A sourced registry of AI coding tools and bots, a zero-dependency library, a CLI and a GitHub Action.",
   "keywords": [
     "ai",

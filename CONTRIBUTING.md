@@ -118,3 +118,5 @@ npx stagecheck            # review and approve
 ```
 
 Then add `release.yml` as a trusted publisher on npmjs.com, and push the `v0.1.0` tag: the release workflow sees that the version is already on npm, skips staging and creates the GitHub release.
+
+After that, never stage from your computer: push the tag and let the workflow stage the release. Only the workflow can publish with npm provenance, the signed record of which commit and workflow built the package. A version staged from a computer is published without it, and npm versions can't be changed afterwards.

@@ -63,6 +63,10 @@ jobs:
             else
               echo "::warning::$FILE differs from the published whowrote@${GITHUB_REF_NAME#v}, so it is not signed or attached."
             fi
+            # Only this workflow can publish with npm provenance; a release staged from a computer has none.
+            if [ -z "$(npm view "whowrote@${GITHUB_REF_NAME#v}" dist.attestations.provenance 2> /dev/null)" ]; then
+              echo "::warning::whowrote@${GITHUB_REF_NAME#v} is on npm without provenance, because it was not staged by this workflow. Release the next version by pushing its tag only (see CONTRIBUTING.md)."
+            fi
           fi
 
       - name: Review and stage the release

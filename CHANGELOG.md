@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## Unreleased
 
+## 0.2.1
+
+- Published by the release workflow with npm provenance (trusted publishing), so npm shows where and how it was built. 0.1.0 and 0.2.0 were staged from a computer and have none. No code changes.
+- The release workflow warns when a version on npm has no provenance.
+
 ## 0.2.0
 
 Finds AI involvement that commit messages don't show, without guessing.

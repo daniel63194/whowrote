@@ -168,9 +168,10 @@ function withTable(readme, entries) {
   return `${readme.slice(0, a + START.length)}\n${readmeTable(entries)}\n${readme.slice(b)}`;
 }
 
+// Line endings are normalised so that a CRLF checkout (git's core.autocrlf on Windows) compares equal.
 function readOr(file, fallback) {
   try {
-    return readFileSync(file, 'utf8');
+    return readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
   } catch {
     return fallback;
   }

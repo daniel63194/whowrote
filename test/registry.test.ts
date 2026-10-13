@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, readdirSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { classifyActor, classifyCommit, classifyPullRequest, getTool, tools } from '../src/index.js';
@@ -15,6 +16,22 @@ describe('registry', () => {
   it('passes validation and the generated files are up to date', () => {
     // Throws (exit code 1) with the list of problems otherwise.
     execFileSync(process.execPath, [join(root, 'scripts', 'registry.mjs'), '--check'], { stdio: 'pipe' });
+  });
+
+  it('accepts a checkout with CRLF line endings (git core.autocrlf on Windows)', () => {
+    const copy = mkdtempSync(join(tmpdir(), 'whowrote-crlf-'));
+    try {
+      cpSync(join(root, 'scripts'), join(copy, 'scripts'), { recursive: true });
+      mkdirSync(join(copy, 'src'));
+      mkdirSync(join(copy, 'registry'));
+      const crlf = (from: string, to: string): void => writeFileSync(to, readFileSync(from, 'utf8').replace(/\r?\n/g, '\r\n'));
+      crlf(join(root, 'README.md'), join(copy, 'README.md'));
+      crlf(join(root, 'src', 'registry-data.ts'), join(copy, 'src', 'registry-data.ts'));
+      for (const f of readdirSync(dir)) crlf(join(dir, f), join(copy, 'registry', f));
+      execFileSync(process.execPath, [join(copy, 'scripts', 'registry.mjs'), '--check'], { stdio: 'pipe' });
+    } finally {
+      rmSync(copy, { recursive: true, force: true });
+    }
   });
 
   it('exposes every entry as a tool', () => {

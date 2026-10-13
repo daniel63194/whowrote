@@ -1,0 +1,50 @@
+name: Add a tool or signal
+description: whowrote doesn't recognise an AI tool or bot, or misses one of its signals.
+labels: ['registry']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Every registry entry needs evidence, so links to public commits or vendor docs are the most useful part of this form.
+        If you'd like to add it yourself, it's one JSON file: see [Adding a tool](https://github.com/daniel63194/whowrote/blob/main/CONTRIBUTING.md#adding-a-tool).
+  - type: input
+    id: tool
+    attributes:
+      label: Tool
+      placeholder: Example Agent (Example Inc.)
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - AI agent (writes code)
+        - AI reviewer (reviews pull requests)
+        - Bot (automation without AI)
+    validations:
+      required: true
+  - type: textarea
+    id: signals
+    attributes:
+      label: Signals
+      description: The account, co-author line, trailer or footer the tool leaves. Paste them exactly.
+      render: text
+      placeholder: |
+        Co-authored-by: Example Agent <agent@example.com>
+        Example-Session: https://example.com/sessions/123
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Links to public commits or pull requests that carry these signals, and to vendor docs if there are any.
+    validations:
+      required: true
+  - type: checkboxes
+    id: pr
+    attributes:
+      label: Pull request
+      options:
+        - label: I'd like to open the pull request myself

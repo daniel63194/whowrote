@@ -1,0 +1,32 @@
+{
+  "id": "gemini-code-assist",
+  "name": "Gemini Code Assist",
+  "vendor": "Google",
+  "kind": "ai-reviewer",
+  "url": "https://developers.google.com/gemini-code-assist/docs/review-github-code",
+  "description": "Gemini Code Assist reviewing pull requests on GitHub. Applying one of its suggestions makes it a co-author.",
+  "aliases": [
+    "gemini code assist"
+  ],
+  "logins": [
+    "gemini-code-assist[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://developers.google.com/gemini-code-assist/docs/review-github-code",
+    "https://github.com/google-gemini/gemini-cli/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Update packages/core/src/tools/shell.ts\n\nCo-authored-by: gemini-code-assist[bot] <176961590+gemini-code-assist[bot]@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

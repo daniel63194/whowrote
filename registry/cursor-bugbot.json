@@ -1,0 +1,45 @@
+{
+  "id": "cursor-bugbot",
+  "name": "Cursor Bugbot",
+  "vendor": "Anysphere",
+  "kind": "ai-reviewer",
+  "url": "https://cursor.com/bugbot",
+  "description": "Cursor's pull request reviewer. Its PR summaries end with a \"Written by Cursor Bugbot\" note.",
+  "aliases": [
+    "bugbot",
+    "cursor bugbot"
+  ],
+  "logins": [
+    "cursor[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [
+    {
+      "pattern": "\\bWritten by \\[?Cursor Bugbot\\b",
+      "scope": "message"
+    }
+  ],
+  "models": [],
+  "evidence": [
+    "https://cursor.com/bugbot",
+    "https://github.com/apps/cursor"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Speed up search (#91)\n\n> [!NOTE]\n> Adds an index.\n> <sup>Written by [Cursor Bugbot](https://cursor.com/dashboard?tab=bugbot) for commit 1a2b3c4.</sup>"
+      },
+      "verdict": "human"
+    },
+    {
+      "actor": {
+        "login": "cursor[bot]",
+        "type": "Bot"
+      },
+      "verdict": "ai-agent"
+    }
+  ]
+}

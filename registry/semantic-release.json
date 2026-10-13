@@ -1,0 +1,31 @@
+{
+  "id": "semantic-release",
+  "name": "semantic-release",
+  "vendor": "semantic-release",
+  "kind": "bot",
+  "url": "https://semantic-release.gitbook.io",
+  "description": "Release commits from semantic-release.",
+  "aliases": [],
+  "logins": [
+    "semantic-release-bot"
+  ],
+  "emails": [
+    "semantic-release-bot@martynus.net"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/semantic-release/git"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "semantic-release-bot <semantic-release-bot@martynus.net>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

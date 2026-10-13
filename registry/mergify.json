@@ -1,0 +1,29 @@
+{
+  "id": "mergify",
+  "name": "Mergify",
+  "vendor": "Mergify",
+  "kind": "bot",
+  "url": "https://mergify.com",
+  "description": "Merge queues and backports.",
+  "aliases": [],
+  "logins": [
+    "mergify[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/mergify"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "mergify[bot] <37929162+mergify[bot]@users.noreply.github.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

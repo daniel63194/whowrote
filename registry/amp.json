@@ -1,0 +1,40 @@
+{
+  "id": "amp",
+  "name": "Amp",
+  "vendor": "Amp",
+  "kind": "ai-agent",
+  "url": "https://ampcode.com",
+  "description": "The Amp coding agent. Adds itself as a co-author and links the Amp thread.",
+  "aliases": [
+    "amp",
+    "ampcode"
+  ],
+  "logins": [],
+  "emails": [
+    "amp@ampcode.com"
+  ],
+  "names": [],
+  "trailers": [
+    "Amp-Thread-ID"
+  ],
+  "footers": [
+    {
+      "pattern": "\\bampcode\\.com/threads/T-"
+    }
+  ],
+  "models": [],
+  "evidence": [
+    "https://ampcode.com/manual",
+    "https://github.com/ghostty-org/ghostty/commits/main",
+    "https://github.com/zed-industries/zed/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "macos: fix window restore\n\nAmp-Thread-ID: https://ampcode.com/threads/T-0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0\nCo-authored-by: Amp <amp@ampcode.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

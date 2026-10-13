@@ -1,0 +1,67 @@
+{
+  "name": "whowrote",
+  "version": "0.1.0",
+  "description": "Tell human, bot and AI-agent commits and pull requests apart, from the signals they disclose: Co-authored-by trailers, agent accounts, session links. A sourced registry of AI coding tools and bots, a zero-dependency library and a CLI that breaks down a repository's history.",
+  "keywords": [
+    "ai",
+    "ai-agents",
+    "coding-agents",
+    "git",
+    "github",
+    "commits",
+    "pull-requests",
+    "co-authored-by",
+    "bot",
+    "isbot",
+    "claude-code",
+    "copilot",
+    "cursor",
+    "codex",
+    "attribution",
+    "provenance"
+  ],
+  "homepage": "https://github.com/daniel63194/whowrote#readme",
+  "bugs": "https://github.com/daniel63194/whowrote/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daniel63194/whowrote.git"
+  },
+  "license": "MIT",
+  "author": "Daniel Eremeev (https://danieleremeev.dev)",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./registry.json": "./dist/registry.json",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "whowrote": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "registry": "node scripts/registry.mjs",
+    "build": "node scripts/registry.mjs --check && node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && node scripts/registry.mjs --json dist/registry.json && node -e \"require('fs').chmodSync('dist/cli.js',0o755)\"",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "fast-check": "4.10.2",
+    "stagecheck": "0.1.4",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
+  }
+}

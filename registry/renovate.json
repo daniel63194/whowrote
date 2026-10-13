@@ -1,0 +1,34 @@
+{
+  "id": "renovate",
+  "name": "Renovate",
+  "vendor": "Mend",
+  "kind": "bot",
+  "url": "https://docs.renovatebot.com",
+  "description": "Dependency updates.",
+  "aliases": [],
+  "logins": [
+    "renovate[bot]",
+    "renovate-bot"
+  ],
+  "emails": [
+    "bot@renovateapp.com",
+    "renovate@whitesourcesoftware.com"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/renovate",
+    "https://github.com/vercel/next.js/commits/canary"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Renovate Bot <renovate@whitesourcesoftware.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

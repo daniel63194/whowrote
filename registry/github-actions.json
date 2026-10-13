@@ -1,0 +1,41 @@
+{
+  "id": "github-actions",
+  "name": "GitHub Actions",
+  "vendor": "GitHub",
+  "kind": "bot",
+  "url": "https://docs.github.com/en/actions",
+  "description": "Commits made by workflows with the workflow's built-in token.",
+  "aliases": [],
+  "logins": [
+    "github-actions[bot]",
+    "github-actions"
+  ],
+  "emails": [
+    "action@github.com",
+    "actions@github.com",
+    "github-actions@github.com"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/github-actions"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    },
+    {
+      "commit": {
+        "author": "GitHub Action <action@github.com>",
+        "message": "Update generated files"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

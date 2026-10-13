@@ -1,0 +1,32 @@
+{
+  "id": "dependabot",
+  "name": "Dependabot",
+  "vendor": "GitHub",
+  "kind": "bot",
+  "url": "https://docs.github.com/en/code-security/dependabot",
+  "description": "Dependency and security updates.",
+  "aliases": [],
+  "logins": [
+    "dependabot[bot]",
+    "dependabot-preview[bot]"
+  ],
+  "emails": [
+    "support@dependabot.com"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/dependabot"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

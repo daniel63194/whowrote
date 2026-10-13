@@ -1,0 +1,30 @@
+{
+  "id": "graphite",
+  "name": "Graphite",
+  "vendor": "Graphite",
+  "kind": "bot",
+  "url": "https://graphite.dev",
+  "description": "Stacked pull requests and merge queue.",
+  "aliases": [],
+  "logins": [
+    "graphite-app[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/graphite-app",
+    "https://github.com/PostHog/posthog/commits/master"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "graphite-app[bot] <96075541+graphite-app[bot]@users.noreply.github.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

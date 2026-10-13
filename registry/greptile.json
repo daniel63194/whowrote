@@ -1,0 +1,32 @@
+{
+  "id": "greptile",
+  "name": "Greptile",
+  "vendor": "Greptile",
+  "kind": "ai-reviewer",
+  "url": "https://greptile.com",
+  "description": "AI code reviews on pull requests. Applying one of its suggestions makes it a co-author.",
+  "aliases": [
+    "greptile"
+  ],
+  "logins": [
+    "greptile-apps[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://www.greptile.com/docs",
+    "https://github.com/mastra-ai/mastra/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Apply suggestion from code review\n\nCo-authored-by: greptile-apps[bot] <165735046+greptile-apps[bot]@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

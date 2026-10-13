@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }}, Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        node: [22, 24]
+        include:
+          # The CLI runs git; paths, line endings and process handling differ on Windows and macOS.
+          - os: windows-latest
+            node: 24
+          - os: macos-latest
+            node: 24
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test # checks the registry, builds, then tests
+      - name: CLI smoke test
+        shell: bash
+        run: |
+          node dist/cli.js --version
+          node dist/cli.js tools | grep -q "GitHub Copilot"
+          node dist/cli.js actor "dependabot[bot]" | grep -q "Bot"
+      - run: npm pack --dry-run
+
+  runtime-node20:
+    # The published package supports Node >= 20.19 even though the dev tooling needs 22+.
+    name: Runtime check (Node 20)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci && npm run build
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 20
+      - run: |
+          node dist/cli.js --version
+          node --input-type=module -e "
+            const m = await import('./dist/index.js');
+            const r = m.classifyCommit({ author: 'Jane <jane@example.com>', message: 'x\n\nCo-Authored-By: Claude <noreply@anthropic.com>' });
+            if (r.verdict !== 'ai-assisted') process.exit(1);
+          "
+
+  dogfood:
+    # Run whowrote on this repository: the pull request itself, or the history on main.
+    name: whowrote on whowrote
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci && npm run build
+      - if: github.event_name == 'pull_request'
+        run: node dist/cli.js pr --summary "$GITHUB_STEP_SUMMARY"
+      - if: github.event_name != 'pull_request'
+        run: node dist/cli.js --by month --summary "$GITHUB_STEP_SUMMARY"

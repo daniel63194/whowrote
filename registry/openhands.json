@@ -1,0 +1,32 @@
+{
+  "id": "openhands",
+  "name": "OpenHands",
+  "vendor": "All Hands AI",
+  "kind": "ai-agent",
+  "url": "https://www.all-hands.dev",
+  "description": "The open source OpenHands agent. Commits with its own git identity by default.",
+  "aliases": [
+    "openhands",
+    "all hands"
+  ],
+  "logins": [],
+  "emails": [
+    "openhands@all-hands.dev"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/All-Hands-AI/OpenHands/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "openhands <openhands@all-hands.dev>",
+        "message": "Fix npm ci lockfile mismatch\n\nCo-authored-by: Jane Doe <jane@example.com>"
+      },
+      "verdict": "ai-agent"
+    }
+  ]
+}

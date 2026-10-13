@@ -1,0 +1,33 @@
+{
+  "id": "sentry-seer",
+  "name": "Seer",
+  "vendor": "Sentry",
+  "kind": "ai-agent",
+  "url": "https://docs.sentry.io/product/ai-in-sentry/seer/",
+  "description": "Sentry's debugging agent. Opens pull requests that fix issues and reviews code.",
+  "aliases": [
+    "seer",
+    "sentry seer"
+  ],
+  "logins": [
+    "seer-by-sentry[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://docs.sentry.io/product/ai-in-sentry/seer/",
+    "https://github.com/getsentry/sentry/commits/master"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "fix(issues): guard missing project (#100)\n\nCo-authored-by: seer-by-sentry[bot] <157164994+seer-by-sentry[bot]@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

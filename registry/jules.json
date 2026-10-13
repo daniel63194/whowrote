@@ -1,0 +1,40 @@
+{
+  "id": "jules",
+  "name": "Jules",
+  "vendor": "Google",
+  "kind": "ai-agent",
+  "url": "https://jules.google",
+  "description": "Google's asynchronous coding agent. Works through the google-labs-jules GitHub app.",
+  "aliases": [
+    "jules",
+    "google jules"
+  ],
+  "logins": [
+    "google-labs-jules[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/google-labs-jules",
+    "https://api.github.com/users/google-labs-jules%5Bbot%5D"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "google-labs-jules[bot] <161369871+google-labs-jules[bot]@users.noreply.github.com>",
+        "message": "Add unit tests for the tokenizer"
+      },
+      "verdict": "ai-agent"
+    },
+    {
+      "commit": {
+        "author": "Jules Lemee <jules@example.com>",
+        "message": "Fix typo"
+      },
+      "verdict": "human"
+    }
+  ]
+}

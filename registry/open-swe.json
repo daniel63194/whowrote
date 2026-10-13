@@ -1,0 +1,33 @@
+{
+  "id": "open-swe",
+  "name": "Open SWE",
+  "vendor": "LangChain",
+  "kind": "ai-agent",
+  "url": "https://github.com/langchain-ai/open-swe",
+  "description": "LangChain's open source asynchronous coding agent.",
+  "aliases": [
+    "open swe",
+    "open-swe"
+  ],
+  "logins": [
+    "open-swe[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/langchain-ai/open-swe",
+    "https://github.com/langchain-ai/langchain/commits/master"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "fix(core): handle empty tool calls\n\nCo-authored-by: open-swe[bot] <open-swe@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

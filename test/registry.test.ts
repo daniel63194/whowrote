@@ -3,7 +3,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writ
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { classifyActor, classifyCommit, classifyPullRequest, getTool, tools } from '../src/index.js';
+import { classifyActor, classifyCommit, classifyPullRequest, detectAgentSetup, getTool, tools } from '../src/index.js';
 import type { RegistryEntry, Result } from '../src/types.js';
 
 const root = join(import.meta.dirname, '..');
@@ -53,6 +53,11 @@ describe('registry', () => {
 
 describe.each(entries.map((e) => [e.id, e] as const))('registry/%s.json examples', (_id, entry) => {
   it.each(entry.examples.map((x, i) => [i, x] as const))('example %i', (_i, example) => {
+    if ('files' in example) {
+      const found = detectAgentSetup(example.files).some((s) => s.tool?.id === entry.id);
+      expect(found).toBe(example.setup);
+      return;
+    }
     let r: Result;
     if ('commit' in example) r = classifyCommit(example.commit);
     else if ('pullRequest' in example) r = classifyPullRequest(example.pullRequest);
@@ -64,5 +69,6 @@ describe.each(entries.map((e) => [e.id, e] as const))('registry/%s.json examples
     if (example.verdict === 'human') expect(ids).not.toContain(entry.id);
     else expect(ids).toContain(entry.id);
     if (example.models) expect(r.tools.find((t) => t.id === entry.id)?.models).toEqual(example.models);
+    if ('hint' in example && example.hint !== undefined) expect(r.hints.some((h) => h.tool === entry.id)).toBe(example.hint);
   });
 });

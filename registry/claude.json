@@ -28,6 +28,23 @@
       "pattern": "\\bclaude\\.ai/code/session_"
     }
   ],
+  "branches": [
+    "^claude/"
+  ],
+  "files": [
+    "**/CLAUDE.md",
+    ".claude/**",
+    ".mcp.json"
+  ],
+  "hints": [
+    {
+      "all": [
+        "^#{1,3} ?Summary\\b",
+        "^#{1,3} ?Test plan\\b"
+      ],
+      "note": "Summary and Test plan sections, the layout Claude Code uses by default"
+    }
+  ],
   "models": [
     "^Claude Code \\((?<model>[^()]+)\\)$",
     "^(?<model>Claude (?:Opus|Sonnet|Haiku|Fable|Mythos)(?: [0-9][0-9.]*)?)"
@@ -35,7 +52,8 @@
   "evidence": [
     "https://code.claude.com/docs/en/settings",
     "https://github.com/apps/claude",
-    "https://github.com/PostHog/posthog/commits/master"
+    "https://github.com/PostHog/posthog/commits/master",
+    "https://github.com/anthropics/claude-code-action/blob/main/action.yml"
   ],
   "examples": [
     {
@@ -120,6 +138,55 @@
         "message": "Rewrite parser\n\nAI disclosure: Created without AI tools."
       },
       "verdict": "human"
+    },
+    {
+      "pullRequest": {
+        "author": {
+          "login": "janedoe",
+          "type": "User"
+        },
+        "branch": "claude/issue-42-20261012-1030",
+        "title": "Fix login",
+        "body": "Fixes #42"
+      },
+      "verdict": "ai-assisted"
+    },
+    {
+      "pullRequest": {
+        "author": {
+          "login": "janedoe",
+          "type": "User"
+        },
+        "title": "Fix login",
+        "body": "## Summary\n- Guard the session lookup\n\n## Test plan\n- [x] npm test"
+      },
+      "verdict": "human",
+      "hint": true
+    },
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Add CLAUDE.md",
+        "files": [
+          "CLAUDE.md"
+        ]
+      },
+      "verdict": "human",
+      "hint": true
+    },
+    {
+      "files": [
+        "README.md",
+        "CLAUDE.md",
+        ".claude/settings.json"
+      ],
+      "setup": true
+    },
+    {
+      "files": [
+        "packages/api/CLAUDE.md"
+      ],
+      "setup": true
     }
   ]
 }

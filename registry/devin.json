@@ -4,10 +4,12 @@
   "vendor": "Cognition",
   "kind": "ai-agent",
   "url": "https://devin.ai",
-  "description": "Devin, the autonomous software engineer. Opens pull requests from its GitHub app and links the Devin session.",
+  "description": "Devin, the autonomous software engineer, and Devin's editor agent Cascade (formerly Windsurf). Opens pull requests from its GitHub app and links the Devin session.",
   "aliases": [
     "devin",
-    "devin ai"
+    "devin ai",
+    "windsurf",
+    "cascade"
   ],
   "logins": [
     "devin-ai-integration[bot]"
@@ -22,10 +24,25 @@
       "pattern": "\\bapp\\.devin\\.ai/sessions/"
     }
   ],
+  "files": [
+    ".devin/**",
+    ".windsurf/**",
+    ".windsurfrules"
+  ],
+  "hints": [
+    {
+      "all": [
+        "^devin/[0-9]"
+      ],
+      "in": "branch",
+      "note": "branch name Devin uses"
+    }
+  ],
   "models": [],
   "evidence": [
     "https://docs.devin.ai/integrations/gh",
-    "https://github.com/calcom/cal.com/commits/main"
+    "https://github.com/calcom/cal.com/commits/main",
+    "https://docs.devin.ai/desktop/cascade/memories"
   ],
   "examples": [
     {
@@ -48,6 +65,18 @@
         "message": "Update docs"
       },
       "verdict": "human"
+    },
+    {
+      "files": [
+        ".windsurfrules"
+      ],
+      "setup": true
+    },
+    {
+      "files": [
+        ".devin/rules/style.md"
+      ],
+      "setup": true
     }
   ]
 }

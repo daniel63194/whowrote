@@ -40,11 +40,22 @@
       "scope": "message"
     }
   ],
+  "branches": [
+    "^copilot/"
+  ],
+  "files": [
+    ".github/copilot-instructions.md",
+    ".github/instructions/**",
+    ".github/prompts/**",
+    ".github/workflows/copilot-setup-steps.yml"
+  ],
   "models": [],
   "evidence": [
     "https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-coding-agent",
     "https://github.com/microsoft/vscode/commits/main",
-    "https://github.com/dotnet/runtime/commits/main"
+    "https://github.com/dotnet/runtime/commits/main",
+    "https://github.blog/changelog/2025-10-16-copilot-coding-agent-uses-better-branch-names-and-pull-request-titles",
+    "https://github.blog/changelog/2025-07-23-github-copilot-coding-agent-now-supports-instructions-md-custom-instructions/"
   ],
   "examples": [
     {
@@ -120,6 +131,19 @@
         "message": "Fix escaping\n\n> This pull request description was generated with GitHub Copilot."
       },
       "verdict": "human"
+    },
+    {
+      "commit": {
+        "author": "Mona Lisa <mona@example.com>",
+        "message": "Merge pull request #12 from octo/copilot/add-theme-switcher\n\nAdd a theme switcher"
+      },
+      "verdict": "ai-assisted"
+    },
+    {
+      "files": [
+        ".github/copilot-instructions.md"
+      ],
+      "setup": true
     }
   ]
 }

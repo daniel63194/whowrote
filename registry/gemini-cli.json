@@ -7,7 +7,8 @@
   "description": "Gemini CLI, including its GitHub Actions integration that commits as gemini-cli[bot].",
   "aliases": [
     "gemini cli",
-    "gemini-cli"
+    "gemini-cli",
+    "gemini"
   ],
   "logins": [
     "gemini-cli[bot]"
@@ -16,6 +17,11 @@
   "names": [],
   "trailers": [],
   "footers": [],
+  "files": [
+    "**/GEMINI.md",
+    ".gemini/settings.json",
+    ".gemini/commands/**"
+  ],
   "models": [],
   "evidence": [
     "https://github.com/google-github-actions/run-gemini-cli",
@@ -28,6 +34,12 @@
         "message": "docs: fix broken links"
       },
       "verdict": "ai-agent"
+    },
+    {
+      "files": [
+        "GEMINI.md"
+      ],
+      "setup": true
     }
   ]
 }

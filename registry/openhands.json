@@ -16,6 +16,9 @@
   "names": [],
   "trailers": [],
   "footers": [],
+  "files": [
+    ".openhands/**"
+  ],
   "models": [],
   "evidence": [
     "https://github.com/All-Hands-AI/OpenHands/commits/main"
@@ -27,6 +30,12 @@
         "message": "Fix npm ci lockfile mismatch\n\nCo-authored-by: Jane Doe <jane@example.com>"
       },
       "verdict": "ai-agent"
+    },
+    {
+      "files": [
+        ".openhands/microagents/repo.md"
+      ],
+      "setup": true
     }
   ]
 }

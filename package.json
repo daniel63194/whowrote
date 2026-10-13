@@ -1,7 +1,7 @@
 {
   "name": "whowrote",
-  "version": "0.1.0",
-  "description": "Tell human, bot and AI-agent commits and pull requests apart, from the signals they disclose: Co-authored-by trailers, agent accounts, session links. A sourced registry of AI coding tools and bots, a zero-dependency library and a CLI that breaks down a repository's history.",
+  "version": "0.2.0",
+  "description": "Tell human, bot and AI-agent commits and pull requests apart, from what they disclose: Co-authored-by trailers, agent accounts, agent branches, session links, git-ai and Agent Trace notes. A sourced registry of AI coding tools and bots, a zero-dependency library, a CLI and a GitHub Action.",
   "keywords": [
     "ai",
     "ai-agents",
@@ -18,7 +18,10 @@
     "cursor",
     "codex",
     "attribution",
-    "provenance"
+    "provenance",
+    "git-ai",
+    "agent-trace",
+    "agents-md"
   ],
   "homepage": "https://github.com/daniel63194/whowrote#readme",
   "bugs": "https://github.com/daniel63194/whowrote/issues",

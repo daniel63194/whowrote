@@ -1,12 +1,27 @@
 import { formatIdentity, parseIdentity, sameIdentity } from './identity.js';
-import { compiledTool, footerTools, matchIdentity, modelFrom, toolByAlias, toolNamedAtStart, trailerTool, type CompiledTool } from './registry.js';
+import { parseNotes } from './notes.js';
+import {
+  branchTool,
+  compiledTool,
+  configFileOwner,
+  footerTools,
+  hintsIn,
+  matchIdentity,
+  modelFrom,
+  toolByAlias,
+  toolNamedAtStart,
+  trailerTool,
+  type CompiledTool,
+} from './registry.js';
 import type {
   CommitInput,
   Evidence,
   GitHubCommit,
   GitHubPullRequest,
+  Hint,
   Identity,
   IdentityInput,
+  PullRequestContext,
   PullRequestInput,
   Result,
   ToolUse,
@@ -16,8 +31,9 @@ import type {
 /** Longer messages are only read up to this many characters. */
 const MAX_TEXT = 200_000;
 const MAX_LINE = 1_000;
+const MAX_FILES = 10_000;
 
-const NEGATIVE = /^(?:no|none|false|n\/?a|nope|0|-+)\.?$/i;
+const NEGATIVE = /^(?:no|none|nobody|no one|nothing|false|n\/?a|nope|0|-+|no ai|not used|unused)\.?$/i;
 const AI_WORD = /\b(?:ai|llm|gpt|chatgpt|claude|gemini|copilot|codex|agent)\b/i;
 const TRAILER = /^([A-Za-z][A-Za-z0-9-]{0,63}):[ \t]*(\S.*)$/;
 
@@ -32,10 +48,15 @@ const DISCLOSURE = new RegExp(
   'gmu',
 );
 
+// "Merge pull request #12 from owner/copilot/fix-x" and "Merge branch 'claude/fix-x'".
+const MERGE_PR = /^Merge pull request #\d{1,9} from [^\s/]{1,100}\/(\S{1,250})/;
+const MERGE_BRANCH = /^Merge (?:remote-tracking )?branch '([^']{1,250})'/;
+
 type AuthorRole = 'ai' | 'bot' | 'human';
 
 class Collector {
   readonly evidence: Evidence[] = [];
+  readonly hints: Hint[] = [];
   private readonly seen = new Set<string>();
 
   add(e: Evidence): Evidence {
@@ -45,6 +66,13 @@ class Collector {
       this.evidence.push(e);
     }
     return e;
+  }
+
+  hint(h: Hint): void {
+    const key = `hint\u0000${h.hint}\u0000${h.tool ?? ''}\u0000${h.value}`;
+    if (this.seen.has(key)) return;
+    this.seen.add(key);
+    this.hints.push(h);
   }
 }
 
@@ -63,30 +91,50 @@ function evidence(
 }
 
 /** Records the identity in the author (or committer) position. Returns what kind of author it is. */
-function readAuthor(c: Collector, id: Identity, signal: 'author' | 'committer'): { role: AuthorRole; evidence?: Evidence } {
+function readAuthor(c: Collector, id: Identity, signal: 'author' | 'committer' | 'pr-author'): { role: AuthorRole; evidence?: Evidence } {
   const m = matchIdentity(id);
   const value = formatIdentity(id);
+  const authorLike = signal !== 'committer';
   switch (m.type) {
     case 'tool': {
-      if (!m.tool.ai) return signal === 'author' ? { role: 'bot', evidence: c.add(evidence(signal, value, 'bot', m.tool)) } : { role: 'human' };
+      if (!m.tool.ai) return authorLike ? { role: 'bot', evidence: c.add(evidence(signal, value, 'bot', m.tool)) } : { role: 'human' };
       return { role: 'ai', evidence: c.add(evidence(signal, value, 'ai', m.tool, m.model)) };
     }
     case 'marker':
       c.add(evidence('name-marker', value, 'ai', m.tool));
       return { role: 'human' };
     case 'bot':
-      return signal === 'author' ? { role: 'bot', evidence: c.add(evidence(signal, value, 'bot')) } : { role: 'human' };
+      return authorLike ? { role: 'bot', evidence: c.add(evidence(signal, value, 'bot')) } : { role: 'human' };
     default:
       return { role: 'human' };
   }
 }
 
-/** Reads trailers and footers from a commit message or pull request description. */
+/** A branch an agent created (`copilot/…`, `claude/…`) is evidence; a weaker naming habit is a hint. */
+function readBranch(c: Collector, raw: string | null | undefined): void {
+  if (typeof raw !== 'string') return;
+  const branch = raw.trim().replace(/^refs\/heads\//, '');
+  if (branch === '' || branch.length > 250) return;
+  const t = branchTool(branch);
+  if (t) {
+    c.add(evidence('branch', branch, t.ai ? 'ai' : 'bot', t));
+    return;
+  }
+  for (const h of hintsIn('branch', branch)) c.hint({ hint: 'branch', value: branch, note: h.note, tool: h.tool.tool.id });
+}
+
+/** Reads trailers, footers, disclosure lines and merge branches from a commit message or PR description. */
 function readMessage(c: Collector, raw: string | null | undefined): void {
   if (typeof raw !== 'string' || raw === '') return;
   const text = raw.length > MAX_TEXT ? raw.slice(0, MAX_TEXT) : raw;
+  const lines = text.split(/\r?\n/);
 
-  for (const rawLine of text.split(/\r?\n/)) {
+  const subject = lines[0] ?? '';
+  const merge = MERGE_PR.exec(subject) ?? MERGE_BRANCH.exec(subject);
+  if (merge) readBranch(c, merge[1]);
+
+  // The subject line is skipped: "ai: add streaming" is a conventional-commit scope, not a trailer.
+  for (const rawLine of lines.slice(1)) {
     const line = rawLine.trim();
     if (line.length > MAX_LINE || !line.includes(':')) continue;
     const m = TRAILER.exec(line);
@@ -110,6 +158,8 @@ function readMessage(c: Collector, raw: string | null | undefined): void {
     // A reviewer "writing" something is a summary of the change, not the change.
     c.add(evidence('footer', excerpt(m[0]), 'ai', t, undefined, t.tool.kind === 'ai-reviewer' ? 'message' : 'code'));
   }
+
+  for (const h of hintsIn('message', text)) c.hint({ hint: 'text', value: excerpt(h.excerpt), note: h.note, tool: h.tool.tool.id });
 }
 
 function readTrailer(c: Collector, key: string, value: string, line: string): void {
@@ -125,8 +175,14 @@ function readTrailer(c: Collector, key: string, value: string, line: string): vo
     case 'assisted-by':
     case 'ai-assisted':
     case 'ai-assisted-by':
-    case 'agent-assisted': {
-      if (NEGATIVE.test(value)) return;
+    case 'agent-assisted':
+    case 'ai-used':
+    case 'ai-generated': {
+      // "AI-assisted: no" is a declaration that no AI was used.
+      if (NEGATIVE.test(value)) {
+        c.add(evidence('trailer', line, 'human'));
+        return;
+      }
       const id = parseIdentity(value);
       const m = matchIdentity(id);
       if (m.type === 'tool') {
@@ -139,6 +195,12 @@ function readTrailer(c: Collector, key: string, value: string, line: string): vo
       c.add(evidence('trailer', line, 'ai', t?.ai ? t : undefined, t?.ai ? modelIn(t, value) : undefined));
       return;
     }
+    // Only read as declarations: "AI: none". Anything else on these keys is too ambiguous to count.
+    case 'ai':
+    case 'ai-usage':
+    case 'ai-tools':
+      if (NEGATIVE.test(value)) c.add(evidence('trailer', line, 'human'));
+      return;
     case 'generated-by':
     case 'made-with': {
       if (NEGATIVE.test(value)) return;
@@ -151,6 +213,36 @@ function readTrailer(c: Collector, key: string, value: string, line: string): vo
       const t = trailerTool(key);
       if (t) c.add(evidence('trailer', line, t.ai ? 'ai' : 'bot', t));
     }
+  }
+}
+
+/** git-ai authorship logs and Agent Trace records in git notes. */
+function readNotes(c: Collector, notes: CommitInput['notes']): void {
+  for (const a of parseNotes(notes)) {
+    const source = a.format === 'git-ai' ? 'git-ai' : 'Agent Trace';
+    const lines = a.lines === undefined ? '' : `${a.lines} line${a.lines === 1 ? '' : 's'} `;
+    if (a.kind === 'human') {
+      c.add({ signal: 'note', value: `${source}: ${lines}written by a person`, kind: 'human', scope: 'code', ...(a.lines !== undefined ? { lines: a.lines } : {}) });
+      continue;
+    }
+    const t = a.tool ? toolByAlias(a.tool) : undefined;
+    const tool = t?.ai ? t : undefined;
+    const who = [a.tool, a.model ? `(${a.model})` : ''].filter(Boolean).join(' ') || 'an AI tool';
+    const e = evidence('note', `${source}: ${lines}by ${who}`, 'ai', tool, a.model);
+    if (a.lines !== undefined) e.lines = a.lines;
+    c.add(e);
+  }
+}
+
+/** Changes to files that configure AI tools are hints, not evidence: people edit CLAUDE.md by hand too. */
+function readFiles(c: Collector, files: readonly string[] | null | undefined): void {
+  for (const path of (files ?? []).slice(0, MAX_FILES)) {
+    if (typeof path !== 'string') continue;
+    const owner = configFileOwner(path);
+    if (!owner) continue;
+    const h: Hint = { hint: 'agent-config', value: path, note: owner.tool ? `changes ${owner.tool.tool.name}'s configuration` : 'changes shared agent instructions' };
+    if (owner.tool) h.tool = owner.tool.tool.id;
+    c.hint(h);
   }
 }
 
@@ -181,10 +273,11 @@ function verdictFor(role: AuthorRole, all: Evidence[], authorEvidence: Evidence 
   return aiCode ? 'ai-assisted' : 'human';
 }
 
-function result(verdict: Verdict, all: Evidence[]): Result {
+function result(verdict: Verdict, c: Collector): Result {
+  const all = c.evidence;
   const uses = new Map<string, ToolUse>();
   for (const e of all) {
-    if (!e.tool || e.scope !== 'code') continue;
+    if (!e.tool || e.scope !== 'code' || e.kind === 'human') continue;
     let u = uses.get(e.tool);
     if (!u) {
       const t = compiledTool(e.tool)!.tool;
@@ -193,8 +286,16 @@ function result(verdict: Verdict, all: Evidence[]): Result {
     }
     if (!u.signals.includes(e.signal)) u.signals.push(e.signal);
     if (e.model && !u.models.includes(e.model)) u.models.push(e.model);
+    if (e.lines !== undefined) u.lines = (u.lines ?? 0) + e.lines;
   }
-  return { verdict, ai: verdict === 'ai-agent' || verdict === 'ai-assisted', tools: [...uses.values()], evidence: all };
+  return {
+    verdict,
+    ai: verdict === 'ai-agent' || verdict === 'ai-assisted',
+    declaredHuman: verdict === 'human' && all.some((e) => e.kind === 'human'),
+    tools: [...uses.values()],
+    evidence: all,
+    hints: c.hints,
+  };
 }
 
 function isGitHubCommit(x: unknown): x is GitHubCommit {
@@ -208,6 +309,15 @@ function fromGitHubCommit(g: GitHubCommit): CommitInput {
   return { message: g.commit.message, author: merge(g.commit.author, g.author), committer: merge(g.commit.committer, g.committer) };
 }
 
+/** What a pull request adds to a commit or a PR verdict: its author, description and branch. */
+function readPullRequest(c: Collector, pr: PullRequestContext, signal: 'author' | 'pr-author'): { role: AuthorRole; evidence?: Evidence } {
+  const id = parseIdentity(pr.author);
+  const a = Object.keys(id).length > 0 ? readAuthor(c, id, signal) : { role: 'human' as const };
+  readMessage(c, [pr.title, pr.body].filter((s): s is string => typeof s === 'string').join('\n\n'));
+  readBranch(c, pr.branch);
+  return a;
+}
+
 function classifyCommitInto(c: Collector, input: CommitInput | GitHubCommit): { role: AuthorRole; authorEvidence?: Evidence } {
   const commit = isGitHubCommit(input) ? fromGitHubCommit(input) : input;
   const author = parseIdentity(commit.author);
@@ -215,12 +325,25 @@ function classifyCommitInto(c: Collector, input: CommitInput | GitHubCommit): { 
   const committer = parseIdentity(commit.committer);
   if (Object.keys(committer).length > 0 && !sameIdentity(author, committer)) readAuthor(c, committer, 'committer');
   readMessage(c, commit.message);
-  return a.evidence ? { role: a.role, authorEvidence: a.evidence } : { role: a.role };
+  readNotes(c, commit.notes);
+  readFiles(c, commit.files);
+  let role = a.role;
+  let authorEvidence = a.evidence;
+  if (commit.pullRequest) {
+    // An agent (or a bot) that opened the pull request is the author of the change, whoever merged it.
+    const p = readPullRequest(c, commit.pullRequest, 'pr-author');
+    if ((p.role === 'ai' && role !== 'ai') || (p.role === 'bot' && role === 'human')) {
+      role = p.role;
+      authorEvidence = p.evidence;
+    }
+  }
+  return authorEvidence ? { role, authorEvidence } : { role };
 }
 
 /**
- * Classifies a commit from its author, committer and message. Accepts plain objects
- * (`{ message, author: 'Jane <jane@example.com>' }`) or commit objects from the GitHub REST API.
+ * Classifies a commit from its author, committer, message and, when given, its git notes and the pull
+ * request it came from. Accepts plain objects (`{ message, author: 'Jane <jane@example.com>' }`) or
+ * commit objects from the GitHub REST API.
  *
  * ```js
  * classifyCommit({
@@ -232,7 +355,7 @@ function classifyCommitInto(c: Collector, input: CommitInput | GitHubCommit): { 
 export function classifyCommit(input: CommitInput | GitHubCommit): Result {
   const c = new Collector();
   const { role, authorEvidence } = classifyCommitInto(c, input);
-  return result(verdictFor(role, c.evidence, authorEvidence), c.evidence);
+  return result(verdictFor(role, c.evidence, authorEvidence), c);
 }
 
 function isGitHubPullRequest(x: PullRequestInput | GitHubPullRequest): x is GitHubPullRequest {
@@ -240,23 +363,29 @@ function isGitHubPullRequest(x: PullRequestInput | GitHubPullRequest): x is GitH
 }
 
 /**
- * Classifies a pull request from its author, title, description and (optionally) its commits. Accepts plain
- * objects or pull request objects from the GitHub REST API and webhooks.
+ * Classifies a pull request from its author, title, description, head branch and (optionally) its commits
+ * and changed files. Accepts plain objects or pull request objects from the GitHub REST API and webhooks.
  */
 export function classifyPullRequest(input: PullRequestInput | GitHubPullRequest): Result {
   const pr: PullRequestInput = isGitHubPullRequest(input)
-    ? { author: input.user ? { login: input.user.login, type: input.user.type } : null, title: input.title, body: input.body }
+    ? {
+        author: input.user ? { login: input.user.login, type: input.user.type } : null,
+        title: input.title,
+        body: input.body,
+        branch: input.head?.ref,
+      }
     : input;
   const c = new Collector();
-  const a = readAuthor(c, parseIdentity(pr.author), 'author');
-  readMessage(c, [pr.title, pr.body].filter((s): s is string => typeof s === 'string').join('\n\n'));
+  const a = readPullRequest(c, pr, 'author');
+  readFiles(c, pr.files);
   for (const commit of pr.commits ?? []) {
     const inner = new Collector();
     classifyCommitInto(inner, commit);
     // A commit authored by an agent inside a person's pull request is AI involvement, not the PR's author.
-    for (const e of inner.evidence) if (e.kind === 'ai') c.add(e);
+    for (const e of inner.evidence) if (e.kind !== 'bot') c.add(e);
+    for (const h of inner.hints) c.hint(h);
   }
-  return result(verdictFor(a.role, c.evidence, a.evidence), c.evidence);
+  return result(verdictFor(a.role, c.evidence, a.evidence), c);
 }
 
 /**
@@ -268,7 +397,7 @@ export function classifyActor(input: IdentityInput): Result {
   const c = new Collector();
   const a = readAuthor(c, parseIdentity(input), 'author');
   const verdict: Verdict = a.role === 'ai' ? 'ai-agent' : a.role === 'bot' ? 'bot' : c.evidence.length > 0 ? 'ai-assisted' : 'human';
-  return result(verdict, c.evidence);
+  return result(verdict, c);
 }
 
 /** `true` for automation and AI agent accounts: `isBot('dependabot[bot]')`, `isBot({ login: 'Copilot', type: 'Bot' })`. */

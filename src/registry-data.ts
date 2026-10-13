@@ -22,9 +22,37 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     ],
     "trailers": [],
     "footers": [],
+    "files": [
+      ".aider.conf.yml",
+      ".aiderignore",
+      ".aider.chat.history.md",
+      ".aider.input.history"
+    ],
     "models": [
       "^aider \\((?<model>[^()]+)\\)$"
     ]
+  },
+  {
+    "id": "amazon-q",
+    "name": "Amazon Q Developer",
+    "vendor": "Amazon Web Services",
+    "kind": "ai-agent",
+    "url": "https://aws.amazon.com/q/developer/",
+    "description": "Amazon Q Developer in the IDE and on GitHub. Recognised by its project rules; its commit signals still need evidence.",
+    "aliases": [
+      "amazon q",
+      "amazon q developer",
+      "q developer"
+    ],
+    "logins": [],
+    "emails": [],
+    "names": [],
+    "trailers": [],
+    "footers": [],
+    "files": [
+      ".amazonq/**"
+    ],
+    "models": []
   },
   {
     "id": "amp",
@@ -82,6 +110,23 @@ export const REGISTRY: readonly RuntimeEntry[] = [
         "pattern": "\\bclaude\\.ai/code/session_"
       }
     ],
+    "branches": [
+      "^claude/"
+    ],
+    "files": [
+      "**/CLAUDE.md",
+      ".claude/**",
+      ".mcp.json"
+    ],
+    "hints": [
+      {
+        "all": [
+          "^#{1,3} ?Summary\\b",
+          "^#{1,3} ?Test plan\\b"
+        ],
+        "note": "Summary and Test plan sections, the layout Claude Code uses by default"
+      }
+    ],
     "models": [
       "^Claude Code \\((?<model>[^()]+)\\)$",
       "^(?<model>Claude (?:Opus|Sonnet|Haiku|Fable|Mythos)(?: [0-9][0-9.]*)?)"
@@ -104,6 +149,10 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "names": [],
     "trailers": [],
     "footers": [],
+    "files": [
+      ".clinerules",
+      ".clinerules/**"
+    ],
     "models": []
   },
   {
@@ -131,6 +180,20 @@ export const REGISTRY: readonly RuntimeEntry[] = [
         "pattern": "\\bcursor\\.com/(?:assets/images/)?open-in-cursor"
       }
     ],
+    "files": [
+      ".cursorrules",
+      ".cursor/**",
+      ".cursorignore"
+    ],
+    "hints": [
+      {
+        "all": [
+          "^cursor/"
+        ],
+        "in": "branch",
+        "note": "branch prefix Cursor's cloud agents use, but also a common word"
+      }
+    ],
     "models": []
   },
   {
@@ -139,10 +202,12 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "vendor": "Cognition",
     "kind": "ai-agent",
     "url": "https://devin.ai",
-    "description": "Devin, the autonomous software engineer. Opens pull requests from its GitHub app and links the Devin session.",
+    "description": "Devin, the autonomous software engineer, and Devin's editor agent Cascade (formerly Windsurf). Opens pull requests from its GitHub app and links the Devin session.",
     "aliases": [
       "devin",
-      "devin ai"
+      "devin ai",
+      "windsurf",
+      "cascade"
     ],
     "logins": [
       "devin-ai-integration[bot]"
@@ -155,6 +220,20 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "footers": [
       {
         "pattern": "\\bapp\\.devin\\.ai/sessions/"
+      }
+    ],
+    "files": [
+      ".devin/**",
+      ".windsurf/**",
+      ".windsurfrules"
+    ],
+    "hints": [
+      {
+        "all": [
+          "^devin/[0-9]"
+        ],
+        "in": "branch",
+        "note": "branch name Devin uses"
       }
     ],
     "models": []
@@ -188,7 +267,8 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "description": "Gemini CLI, including its GitHub Actions integration that commits as gemini-cli[bot].",
     "aliases": [
       "gemini cli",
-      "gemini-cli"
+      "gemini-cli",
+      "gemini"
     ],
     "logins": [
       "gemini-cli[bot]"
@@ -197,6 +277,11 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "names": [],
     "trailers": [],
     "footers": [],
+    "files": [
+      "**/GEMINI.md",
+      ".gemini/settings.json",
+      ".gemini/commands/**"
+    ],
     "models": []
   },
   {
@@ -241,6 +326,15 @@ export const REGISTRY: readonly RuntimeEntry[] = [
         "scope": "message"
       }
     ],
+    "branches": [
+      "^copilot/"
+    ],
+    "files": [
+      ".github/copilot-instructions.md",
+      ".github/instructions/**",
+      ".github/prompts/**",
+      ".github/workflows/copilot-setup-steps.yml"
+    ],
     "models": []
   },
   {
@@ -261,6 +355,46 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "names": [],
     "trailers": [],
     "footers": [],
+    "models": []
+  },
+  {
+    "id": "junie",
+    "name": "Junie",
+    "vendor": "JetBrains",
+    "kind": "ai-agent",
+    "url": "https://www.jetbrains.com/junie/",
+    "description": "JetBrains' coding agent. Recognised by its guidelines folder; its commit signals still need evidence.",
+    "aliases": [
+      "junie"
+    ],
+    "logins": [],
+    "emails": [],
+    "names": [],
+    "trailers": [],
+    "footers": [],
+    "files": [
+      ".junie/**"
+    ],
+    "models": []
+  },
+  {
+    "id": "kiro",
+    "name": "Kiro",
+    "vendor": "Amazon Web Services",
+    "kind": "ai-agent",
+    "url": "https://kiro.dev",
+    "description": "Kiro, the agentic IDE. Recognised by its steering and spec files; its commit signals still need evidence.",
+    "aliases": [
+      "kiro"
+    ],
+    "logins": [],
+    "emails": [],
+    "names": [],
+    "trailers": [],
+    "footers": [],
+    "files": [
+      ".kiro/**"
+    ],
     "models": []
   },
   {
@@ -332,6 +466,15 @@ export const REGISTRY: readonly RuntimeEntry[] = [
         "pattern": "\\bchatgpt\\.com/codex/tasks/task_"
       }
     ],
+    "hints": [
+      {
+        "all": [
+          "^codex/"
+        ],
+        "in": "branch",
+        "note": "branch prefix Codex cloud tasks use"
+      }
+    ],
     "models": []
   },
   {
@@ -353,6 +496,11 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "names": [],
     "trailers": [],
     "footers": [],
+    "files": [
+      "opencode.json",
+      "opencode.jsonc",
+      ".opencode/**"
+    ],
     "models": []
   },
   {
@@ -373,6 +521,9 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "names": [],
     "trailers": [],
     "footers": [],
+    "files": [
+      ".openhands/**"
+    ],
     "models": []
   },
   {
@@ -414,6 +565,10 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "names": [],
     "trailers": [],
     "footers": [],
+    "files": [
+      ".coderabbit.yaml",
+      ".coderabbit.yml"
+    ],
     "models": []
   },
   {
@@ -515,6 +670,10 @@ export const REGISTRY: readonly RuntimeEntry[] = [
     "names": [],
     "trailers": [],
     "footers": [],
+    "files": [
+      ".gemini/config.yaml",
+      ".gemini/styleguide.md"
+    ],
     "models": []
   },
   {

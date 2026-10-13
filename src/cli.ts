@@ -3,11 +3,13 @@ import { appendFileSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { classifyActor, classifyCommit, classifyPullRequest } from './classify.js';
-import { GitError, readCommits, type GitCommit, type LogOptions } from './git.js';
-import { tools } from './registry.js';
-import { LABEL, displaySafe, renderCommitLine, renderExplain, renderMarkdown, renderText, toolName } from './report.js';
+import { GitError, changedFiles, changedFilesMatching, gitOutput, listFiles, readCommits, type GitCommit, type LogOptions } from './git.js';
+import { GitHubClient, GitHubError, parsePrRef, parseRepo, prNumberFromSubject, repoFromRemote, resolveToken, type GitHubRepo } from './github.js';
+import { agentConfigGlobs, tools } from './registry.js';
+import { LABEL, displaySafe, renderCommitLine, renderExplain, renderMarkdown, renderText, resultLabel, toolName } from './report.js';
+import { detectAgentSetup } from './setup.js';
 import { Tally, VERDICTS, type PeriodUnit } from './stats.js';
-import type { CommitInput, Identity, PullRequestInput, Result, Verdict } from './types.js';
+import type { CommitInput, GitHubCommit, Identity, PullRequestContext, PullRequestInput, Result, Verdict } from './types.js';
 
 const VERSION: string = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
@@ -18,7 +20,8 @@ Usage:
   whowrote explain [<commit>...]                  Show the evidence behind each commit's verdict
   whowrote actor <identity>...                    Classify accounts and git identities, e.g.
                                                   dependabot[bot] or "Jane Doe <jane@example.com>"
-  whowrote pr [--event <file>]                    Classify a pull request from a GitHub event or
+  whowrote pr <number|owner/repo#n|url>           Classify a pull request from GitHub
+  whowrote pr --event <file>                      ... from a GitHub event payload, or
                                                   \`gh pr view --json author,title,body,commits\` (- for stdin)
   whowrote tools                                  List the AI tools and bots whowrote recognises
 
@@ -31,6 +34,14 @@ Options:
                                Add a breakdown by period
   --merges                     Include merge commits (default: left out)
   --first-parent               Follow only the first parent of merges
+  --github                     Also read each commit's pull request on GitHub (author, description,
+                               branch): finds agent pull requests that squash merges hide. Needs a
+                               token for history (GITHUB_TOKEN, GH_TOKEN or gh auth login)
+  --repo <owner/name>          GitHub repository (default: from the origin remote)
+  --notes <ref>                Read attribution notes from this ref (default: refs/notes/ai, git-ai's)
+  --no-notes                   Don't read git notes
+  --hints                      Show weak signals (agent config changes, agent PR layouts). They never
+                               change a verdict
   --commits                    List each AI and bot commit (with --format json: every commit)
   --format <text|markdown|json>
                                Output format (default: text)
@@ -42,12 +53,14 @@ Options:
   -v, --version                Show the version
 
 Verdicts:
-  human        nothing discloses AI involvement or automation
+  human        no AI involvement or automation is disclosed ("No AI disclosed"; "Declared no AI"
+               when the author says so, e.g. AI-assisted: no)
   ai-assisted  a person is the author and AI involvement is disclosed (e.g. Co-authored-by: Claude)
   ai-agent     an AI agent's own identity is the author (e.g. Copilot, Devin)
   bot          an automation account (e.g. dependabot[bot]) with no AI involvement disclosed
 
 whowrote reads what commits disclose. It does not guess from code style.
+Attribution notes aren't fetched by git clone: git fetch origin 'refs/notes/*:refs/notes/*'
 To analyse a branch named like a command, write refs/heads/<name>.
 Docs: https://github.com/daniel63194/whowrote
 `;
@@ -56,6 +69,7 @@ class UsageError extends Error {}
 
 const COMMANDS = new Set(['explain', 'actor', 'pr', 'tools']);
 const PERIODS: readonly PeriodUnit[] = ['week', 'month', 'quarter', 'year'];
+const DEFAULT_NOTES = 'refs/notes/ai';
 type Format = 'text' | 'markdown' | 'json';
 
 interface Options {
@@ -67,6 +81,9 @@ interface Options {
   log: LogOptions;
   by?: PeriodUnit;
   commits: boolean;
+  hints: boolean;
+  github: boolean;
+  repo?: GitHubRepo;
   event?: string;
 }
 
@@ -87,12 +104,18 @@ function write(s: string): void {
   if (!stdoutClosed) process.stdout.write(s);
 }
 
+function note(s: string): void {
+  process.stderr.write(`whowrote: ${s}\n`);
+}
+
 function subject(message: string): string {
   return message.split('\n', 1)[0] ?? '';
 }
 
-function commitInput(c: GitCommit): CommitInput {
-  return { message: c.message, author: c.author, committer: c.committer };
+function commitInput(c: GitCommit, extra: Partial<CommitInput> = {}): CommitInput {
+  const input: CommitInput = { message: c.message, author: c.author, committer: c.committer, ...extra };
+  if (c.notes) input.notes = c.notes;
+  return input;
 }
 
 function parseFailOn(raw: string[] | undefined): Set<Verdict> {
@@ -117,20 +140,87 @@ function githubOutput(values: Record<string, string>): void {
   appendFileSync(file, Object.entries(values).map(([k, v]) => `${k}=${v.replace(/[\r\n]/g, ' ')}\n`).join(''));
 }
 
+/** The repository on GitHub: --repo, else the origin remote. */
+async function githubRepo(o: Options, required: boolean): Promise<GitHubRepo | undefined> {
+  if (o.repo) return o.repo;
+  const repo = repoFromRemote(await gitOutput(o.cwd, ['remote', 'get-url', 'origin']));
+  if (!repo && required) throw new UsageError('could not tell which GitHub repository this is; pass --repo owner/name');
+  return repo;
+}
+
+/** The revision whose files show the agent setup: the end of the last range, or HEAD. */
+function setupRevision(revisions: readonly string[] | undefined): string {
+  const last = revisions?.filter((r) => !r.startsWith('^')).at(-1);
+  if (!last) return 'HEAD';
+  const dots = last.lastIndexOf('..');
+  const tip = dots === -1 ? last : last.slice(dots + 2).replace(/^\./, '');
+  return tip || 'HEAD';
+}
+
+async function agentSetupAt(o: Options, revision: string) {
+  try {
+    return detectAgentSetup(await listFiles(o.cwd, revision));
+  } catch {
+    return undefined; // e.g. a revision whose trees aren't available
+  }
+}
+
+/** Pull requests of squash-merged commits in the range, read from GitHub in bulk. */
+async function pullRequestsByCommit(o: Options): Promise<Map<string, PullRequestContext>> {
+  const repo = await githubRepo(o, true);
+  const numbers = new Map<string, number>();
+  for await (const c of readCommits({ ...o.log, notes: [] })) {
+    const n = prNumberFromSubject(subject(c.message));
+    if (n) numbers.set(c.sha, n);
+  }
+  const out = new Map<string, PullRequestContext>();
+  if (numbers.size === 0) return out;
+  const client = new GitHubClient({ token: resolveToken() });
+  const total = new Set(numbers.values()).size;
+  const tty = process.stderr.isTTY === true;
+  if (tty) note(`reading ${total.toLocaleString('en-US')} pull request${total === 1 ? '' : 's'} from GitHub…`);
+  const prs = await client.pullRequests(repo!, [...numbers.values()], tty ? (done) => process.stderr.write(`\r  ${Math.min(done, total)}/${total}`) : undefined);
+  if (tty) process.stderr.write('\n');
+  for (const [sha, n] of numbers) {
+    const pr = prs.get(n);
+    if (pr) out.set(sha, pr);
+  }
+  return out;
+}
+
 async function cmdStats(o: Options): Promise<number> {
   const tally = new Tally(o.by);
   const rows: { sha: string; date: string; subject: string; verdict: Verdict; result: Result }[] = [];
   const failing: typeof rows = [];
+  let files = new Map<string, string[]>();
+  if (o.hints) {
+    try {
+      files = await changedFilesMatching(o.log, agentConfigGlobs());
+    } catch (err) {
+      if (!(err instanceof GitError)) throw err;
+      note(`can't tell which commits changed agent config files (${err.message}); a partial clone without trees can't, so other hints only`);
+    }
+  }
+  const prs = o.github ? await pullRequestsByCommit(o) : new Map<string, PullRequestContext>();
   for await (const c of readCommits(o.log)) {
-    const r = classifyCommit(commitInput(c));
+    const extra: Partial<CommitInput> = {};
+    const f = files.get(c.sha);
+    if (f) extra.files = f;
+    const pr = prs.get(c.sha);
+    if (pr) extra.pullRequest = pr;
+    const r = classifyCommit(commitInput(c, extra));
     tally.add(r, c.date);
     const row = { sha: c.sha, date: c.date, subject: subject(c.message), verdict: r.verdict, result: r };
-    if (o.commits && (o.format === 'json' || r.verdict !== 'human')) rows.push(row);
+    if (o.commits && (o.format === 'json' || r.verdict !== 'human' || r.declaredHuman || (o.hints && r.hints.length > 0))) rows.push(row);
     if (o.failOn.has(r.verdict)) failing.push(row);
   }
   const summary = tally.summary();
+  if (!o.hints) summary.hints = [];
+  const setupAt = setupRevision(o.log.revisions);
+  const setup = await agentSetupAt(o, setupAt);
+  if (setup) summary.setup = setup;
   const range = o.log.revisions?.length ? o.log.revisions.join(' ') : undefined;
-  const meta = { title: basename(resolve(o.cwd)), range };
+  const meta = { title: basename(resolve(o.cwd)), range, setupAt };
 
   if (o.format === 'json') {
     const out: Record<string, unknown> = {
@@ -139,22 +229,31 @@ async function cmdStats(o: Options): Promise<number> {
       range: { revisions: o.log.revisions ?? ['HEAD'], since: o.log.since ?? null, until: o.log.until ?? null, paths: o.log.paths ?? [] },
       summary,
     };
-    if (o.commits) out['commits'] = rows.map(({ result, ...r }) => ({ ...r, ai: result.ai, tools: result.tools.map((t) => t.id), evidence: result.evidence }));
+    if (o.commits) {
+      out['commits'] = rows.map(({ result, ...r }) => ({
+        ...r,
+        ai: result.ai,
+        declaredHuman: result.declaredHuman,
+        tools: result.tools.map((t) => t.id),
+        evidence: result.evidence,
+        ...(o.hints ? { hints: result.hints } : {}),
+      }));
+    }
     write(`${JSON.stringify(out, null, 2)}\n`);
   } else if (o.format === 'markdown') {
-    write(renderMarkdown(summary, meta));
+    write(renderMarkdown(summary, meta, { hints: o.hints }));
   } else {
-    write(renderText(summary, meta, { color: o.color }));
+    write(renderText(summary, meta, { color: o.color, hints: o.hints }));
     if (o.commits && rows.length > 0) {
       write('\n');
       for (const r of rows) write(`${renderCommitLine(r, r.result, { color: o.color })}\n`);
     }
   }
-  writeSummary(o, renderMarkdown(summary, meta));
+  writeSummary(o, renderMarkdown(summary, meta, { hints: o.hints }));
 
   if (failing.length > 0) {
     const what = [...o.failOn].map((v) => LABEL[v]).join(' or ');
-    process.stderr.write(`whowrote: ${failing.length} commit${failing.length === 1 ? '' : 's'} ${failing.length === 1 ? 'is' : 'are'} ${what} (--fail-on)\n`);
+    note(`${failing.length} commit${failing.length === 1 ? '' : 's'} ${failing.length === 1 ? 'is' : 'are'} ${what} (--fail-on)`);
     for (const r of failing.slice(0, 20)) process.stderr.write(`  ${renderCommitLine(r, r.result)}\n`);
     if (failing.length > 20) process.stderr.write(`  …and ${failing.length - 20} more (see --commits)\n`);
     return 1;
@@ -166,8 +265,20 @@ async function cmdExplain(revisions: string[], o: Options): Promise<number> {
   const out: unknown[] = [];
   let failed = false;
   let first = true;
+  const repo = o.github ? await githubRepo(o, true) : undefined;
+  const client = o.github ? new GitHubClient({ token: resolveToken() }) : undefined;
   for await (const c of readCommits({ ...o.log, revisions: revisions.length ? revisions : ['HEAD'], noWalk: true })) {
-    const r = classifyCommit(commitInput(c));
+    const extra: Partial<CommitInput> = { files: await changedFiles(o.cwd, c.sha).catch(() => []) };
+    if (client && repo) {
+      try {
+        const prs = await client.pullRequestsForCommit(repo, c.sha);
+        if (prs[0]) extra.pullRequest = prs[0].context;
+      } catch (err) {
+        if (!(err instanceof GitHubError)) throw err;
+        note(`could not read the pull request for ${c.sha.slice(0, 12)}: ${err.message}`);
+      }
+    }
+    const r = classifyCommit(commitInput(c, extra));
     if (o.failOn.has(r.verdict)) failed = true;
     if (o.format === 'json') {
       out.push({ sha: c.sha, date: c.date, subject: subject(c.message), ...r });
@@ -192,7 +303,7 @@ function cmdActor(identities: string[], o: Options): number {
     const width = Math.min(48, Math.max(...identities.map((s) => s.length)));
     for (const r of results) {
       const tool = r.tools[0] ? toolName(r.tools[0]) : r.verdict === 'bot' ? 'unlisted bot' : '';
-      write(`${displaySafe(r.input).padEnd(width)}  ${LABEL[r.verdict].padEnd(11)}  ${displaySafe(tool)}\n`);
+      write(`${displaySafe(r.input).padEnd(width)}  ${resultLabel(r).padEnd(15)}  ${displaySafe(tool)}\n`);
     }
   }
   return results.some((r) => o.failOn.has(r.verdict)) ? 1 : 0;
@@ -209,7 +320,7 @@ function cmdTools(o: Options): number {
     for (const t of tools) write(`| [${t.name}](${t.url}) | ${t.vendor} | ${kind[t.kind]} | \`${t.id}\` |\n`);
     return 0;
   }
-  for (const t of tools) write(`${t.name.padEnd(22)} ${t.vendor.padEnd(16)} ${kind[t.kind].padEnd(12)} ${t.id}\n`);
+  for (const t of tools) write(`${t.name.padEnd(22)} ${t.vendor.padEnd(20)} ${kind[t.kind].padEnd(12)} ${t.id}\n`);
   return 0;
 }
 
@@ -247,9 +358,37 @@ function ghCommits(pr: Record<string, unknown>): CommitInput[] {
   });
 }
 
-async function cmdPr(o: Options): Promise<number> {
-  const source = o.event ?? process.env['GITHUB_EVENT_PATH'];
-  if (!source) throw new UsageError('pr needs --event <file> (a GitHub event payload, or gh pr view --json output; - reads stdin)');
+const branchOf = (pr: Record<string, unknown>): string | null => {
+  const head = pr['head'] as { ref?: unknown } | undefined;
+  if (typeof head?.ref === 'string') return head.ref;
+  return typeof pr['headRefName'] === 'string' ? pr['headRefName'] : null;
+};
+
+interface PrSource {
+  number: number | null;
+  url?: string;
+  input: PullRequestInput;
+  commits: number;
+  note?: string;
+}
+
+/** A pull request from GitHub by reference: 12, #12, owner/repo#12 or a URL. */
+async function prFromGitHub(ref: string, o: Options): Promise<PrSource> {
+  const fallback = await githubRepo(o, false);
+  const parsed = parsePrRef(ref, fallback);
+  if (!parsed) throw new UsageError(`"${ref}" is not a pull request; use a number, owner/repo#123 or a pull request URL`);
+  const client = new GitHubClient({ token: resolveToken() });
+  const pr = await client.pullRequest(parsed.repo, parsed.number, { files: o.hints });
+  return {
+    number: pr.number,
+    url: pr.url,
+    input: { author: pr.author, title: pr.title, body: pr.body, branch: pr.branch, commits: pr.commits, files: pr.files },
+    commits: pr.commits.length,
+  };
+}
+
+/** A pull request from a webhook payload or `gh pr view --json` output. */
+async function prFromEvent(source: string, o: Options): Promise<PrSource> {
   let data: Record<string, unknown>;
   try {
     data = JSON.parse(readFileSync(source === '-' ? 0 : source, 'utf8')) as Record<string, unknown>;
@@ -260,9 +399,9 @@ async function cmdPr(o: Options): Promise<number> {
   if (!('title' in pr) && !('body' in pr) && !('user' in pr) && !('author' in pr)) {
     throw new UsageError(`${source} does not look like a pull request (no title, body or author)`);
   }
-
-  const commits: CommitInput[] = ghCommits(pr);
-  let note = '';
+  const number = typeof pr['number'] === 'number' ? pr['number'] : null;
+  const commits: (CommitInput | GitHubCommit)[] = ghCommits(pr);
+  let missing = '';
   const base = (pr['base'] as { sha?: string } | undefined)?.sha;
   const head = (pr['head'] as { sha?: string } | undefined)?.sha;
   if (commits.length === 0 && base && head && /^[0-9a-f]{40,64}$/.test(base) && /^[0-9a-f]{40,64}$/.test(head)) {
@@ -270,31 +409,57 @@ async function cmdPr(o: Options): Promise<number> {
       for await (const c of readCommits({ ...o.log, revisions: [`${base}..${head}`], merges: true })) commits.push(commitInput(c));
     } catch (err) {
       if (!(err instanceof GitError)) throw err;
-      note = 'The pull request commits are not in this clone, so only its author and description were read. Check out with fetch-depth: 0 to include them.';
+      missing = 'The pull request commits are not in this clone';
     }
   }
-
-  const author = prAuthor(pr);
+  // Commits not in the clone (a shallow checkout, or a fork under pull_request_target): ask GitHub.
+  if (missing && number !== null) {
+    const repoName = (data['repository'] as { full_name?: unknown } | undefined)?.full_name;
+    const repo = (typeof repoName === 'string' ? parseRepo(repoName) : undefined) ?? o.repo ?? parseRepo(process.env['GITHUB_REPOSITORY'] ?? '');
+    if (repo) {
+      try {
+        commits.push(...(await new GitHubClient({ token: resolveToken() }).pullRequestCommits(repo, number)));
+        missing = '';
+      } catch (err) {
+        if (!(err instanceof GitHubError)) throw err;
+        missing += `, and GitHub could not list them (${err.message})`;
+      }
+    }
+  }
   const input: PullRequestInput = {
-    author,
+    author: prAuthor(pr),
     title: typeof pr['title'] === 'string' ? pr['title'] : null,
     body: typeof pr['body'] === 'string' ? pr['body'] : null,
+    branch: branchOf(pr),
     commits,
   };
-  const r = classifyPullRequest(input);
-  const number = typeof pr['number'] === 'number' ? `#${pr['number']}` : 'pull request';
-  const title = `${number} ${input.title ?? ''}`.trim();
+  const out: PrSource = { number, input, commits: commits.length };
+  if (missing) out.note = `${missing}, so only the author, branch and description were read. Check out with fetch-depth: 0 to include them.`;
+  return out;
+}
+
+async function cmdPr(args: string[], o: Options): Promise<number> {
+  if (args.length > 1) throw new UsageError('pr takes one pull request');
+  const event = o.event ?? (args.length === 0 ? process.env['GITHUB_EVENT_PATH'] : undefined);
+  let src: PrSource;
+  if (args[0] !== undefined) src = await prFromGitHub(args[0], o);
+  else if (event) src = await prFromEvent(event, o);
+  else throw new UsageError('pr needs a pull request (number, owner/repo#123 or URL) or --event <file> (a GitHub event payload, or gh pr view --json output; - reads stdin)');
+
+  const r = classifyPullRequest(src.input);
+  const title = `${src.number !== null ? `#${src.number}` : 'pull request'} ${src.input.title ?? ''}`.trim();
 
   if (o.format === 'json') {
-    write(`${JSON.stringify({ pullRequest: { number: pr['number'] ?? null, title: input.title, commits: commits.length }, ...r }, null, 2)}\n`);
+    write(`${JSON.stringify({ pullRequest: { number: src.number, title: src.input.title ?? null, branch: src.input.branch ?? null, commits: src.commits, ...(src.url ? { url: src.url } : {}) }, ...r }, null, 2)}\n`);
   } else {
-    const authorText = author ? (author.login ?? author.name ?? '') : '';
+    const a = src.input.author;
+    const authorText = a && typeof a === 'object' ? (a.login ?? a.name ?? '') : (a ?? '');
     write(renderExplain({ sha: '', subject: title, author: authorText }, r, { color: o.color && o.format === 'text' }));
-    if (note) process.stderr.write(`whowrote: ${note}\n`);
   }
+  if (src.note) note(src.note);
   const toolNames = r.tools.filter((t) => t.kind !== 'bot').map((t) => t.name);
-  writeSummary(o, `### whowrote: ${LABEL[r.verdict]}\n\n${displaySafe(title).replace(/[\\`*_[\]<>|#!~]/g, (ch) => `\\${ch}`)}${toolNames.length ? `\n\nAI tools: ${toolNames.join(', ')}` : ''}\n`);
-  githubOutput({ verdict: r.verdict, ai: String(r.ai), tools: r.tools.map((t) => t.id).join(',') });
+  writeSummary(o, `### whowrote: ${resultLabel(r)}\n\n${displaySafe(title).replace(/[\\`*_[\]<>|#!~]/g, (ch) => `\\${ch}`)}${toolNames.length ? `\n\nAI tools: ${toolNames.join(', ')}` : ''}\n`);
+  githubOutput({ verdict: r.verdict, ai: String(r.ai), tools: r.tools.map((t) => t.id).join(','), 'declared-human': String(r.declaredHuman) });
   return o.failOn.has(r.verdict) ? 1 : 0;
 }
 
@@ -316,6 +481,11 @@ async function main(argv: string[]): Promise<number> {
       by: { type: 'string' },
       merges: { type: 'boolean', default: false },
       'first-parent': { type: 'boolean', default: false },
+      github: { type: 'boolean', default: false },
+      repo: { type: 'string' },
+      notes: { type: 'string', multiple: true },
+      'no-notes': { type: 'boolean', default: false },
+      hints: { type: 'boolean', default: false },
       commits: { type: 'boolean', default: false },
       format: { type: 'string' },
       'fail-on': { type: 'string', multiple: true },
@@ -346,6 +516,15 @@ async function main(argv: string[]): Promise<number> {
   for (const [flag, v] of [['--since', values.since], ['--until', values.until]] as const) {
     if (v !== undefined && (v.trim() === '' || v.startsWith('-'))) throw new UsageError(`${flag} needs a date`);
   }
+  let repo: GitHubRepo | undefined;
+  if (values.repo !== undefined) {
+    repo = parseRepo(values.repo);
+    if (!repo) throw new UsageError('--repo must look like owner/name');
+  }
+  if (values['no-notes'] && values.notes) throw new UsageError('--notes and --no-notes contradict each other');
+  for (const ref of values.notes ?? []) {
+    if (!/^refs\/notes\/[A-Za-z0-9._/-]{1,200}$/.test(ref) || ref.includes('..')) throw new UsageError(`--notes takes a notes ref such as refs/notes/ai, not "${ref}"`);
+  }
 
   const [first, ...rest] = positionals;
   const command = first !== undefined && COMMANDS.has(first) ? first : undefined;
@@ -365,13 +544,18 @@ async function main(argv: string[]): Promise<number> {
       maxCount,
       merges: values.merges,
       firstParent: values['first-parent'],
+      notes: values['no-notes'] ? [] : (values.notes ?? [DEFAULT_NOTES]),
     },
     commits: values.commits,
+    hints: values.hints,
+    github: values.github,
   };
+  if (repo) o.repo = repo;
   if (values.summary) o.summary = resolve(values.summary);
   if (values.by) o.by = values.by as PeriodUnit;
   if (values.event) o.event = values.event;
   if (values.event && command !== 'pr') throw new UsageError('--event only works with whowrote pr');
+  if (values.github && (command === 'actor' || command === 'tools')) throw new UsageError(`--github doesn't apply to whowrote ${command}`);
 
   switch (command) {
     case undefined:
@@ -381,7 +565,7 @@ async function main(argv: string[]): Promise<number> {
     case 'actor':
       return cmdActor(args, o);
     case 'pr':
-      return cmdPr(o);
+      return cmdPr(args, o);
     case 'tools':
       return cmdTools(o);
     default:
@@ -398,7 +582,7 @@ main(process.argv.slice(2)).then(
     process.stderr.write(`whowrote: ${message}\n`);
     if (error instanceof UsageError || (error instanceof TypeError && 'code' in error && String(error.code).startsWith('ERR_PARSE_ARGS'))) {
       process.stderr.write('Run whowrote --help for usage.\n');
-    } else if (!(error instanceof GitError) && error instanceof Error && error.stack && process.env['DEBUG']) {
+    } else if (!(error instanceof GitError) && !(error instanceof GitHubError) && error instanceof Error && error.stack && process.env['DEBUG']) {
       process.stderr.write(`${error.stack}\n`);
     }
     process.exitCode = 2;

@@ -17,6 +17,10 @@
   "names": [],
   "trailers": [],
   "footers": [],
+  "files": [
+    ".coderabbit.yaml",
+    ".coderabbit.yml"
+  ],
   "models": [],
   "evidence": [
     "https://docs.coderabbit.ai",
@@ -29,6 +33,12 @@
         "message": "Apply suggestion from code review\n\nCo-authored-by: coderabbitai[bot] <136622811+coderabbitai[bot]@users.noreply.github.com>"
       },
       "verdict": "ai-assisted"
+    },
+    {
+      "files": [
+        ".coderabbit.yaml"
+      ],
+      "setup": true
     }
   ]
 }

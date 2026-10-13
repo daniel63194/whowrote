@@ -66,8 +66,11 @@ Each tool is one file in [`registry/`](registry/), named after its id. Copy a si
 | `trailers` | Trailer keys that belong only to this tool, like `Claude-Session`. `Co-authored-by`, `Assisted-by`, `Made-with` and the like are read for every tool already. |
 | `footers` | Patterns searched for anywhere in a message, usually session links. Add `"scope": "message"` when the text only says that the message or description was generated. |
 | `models` | Patterns with a `(?<model>…)` group that pull the model out of a co-author name, e.g. `^aider \((?<model>[^()]+)\)$`. |
+| `branches` | Patterns for branch names the tool creates on its own, e.g. `^copilot/`. A pull request from such a branch counts as evidence, so only add prefixes that people don't use by hand. |
+| `files` | Paths that configure the tool in a repository, e.g. `**/CLAUDE.md` or `.cursor/**` (`**/` matches any folder, `/**` everything below one, `*` within a name). They show the agent setup and turn into hints, never into evidence. |
+| `hints` | Weak signals: `{ "all": ["pattern", …], "note": "…" }`, all patterns must match; add `"in": "branch"` to match branch names instead of the message. Use these for habits that people share with the tool, like a common branch prefix or a PR layout. |
 | `evidence` | At least one link that shows the signal: vendor docs, or public commits that carry it. |
-| `examples` | Run as tests. Add one per signal, plus a **near miss** with verdict `human` when the tool's name is also a person's name or a common word. |
+| `examples` | Run as tests. Add one per signal, plus a **near miss** with verdict `human` when the tool's name is also a person's name or a common word. Pull request examples can set `branch`; add `"hint": true` when a hint is expected. For `files`, use `{ "files": ["CLAUDE.md"], "setup": true }`. |
 
 Then run `npm run registry` (it validates every entry, regenerates `src/registry-data.ts` and updates the table in the README) and `npm test`.
 
@@ -81,8 +84,11 @@ The logic lives in `src/classify.ts`, identity matching in `src/identity.ts` and
 | --- | --- |
 | `src/identity.ts` | Parses identities, reads logins from noreply emails, recognises unlisted bots. |
 | `src/registry.ts` | Compiles the registry and matches identities and names. |
-| `src/classify.ts` | Trailers, footers, disclosure lines and verdicts. |
-| `src/git.ts` | Streams `git log` (the only module that runs a program). |
+| `src/classify.ts` | Trailers, footers, disclosure lines, branches, declarations, hints and verdicts. |
+| `src/notes.ts` | Reads git-ai and Agent Trace attribution records from git notes. |
+| `src/setup.ts`, `src/glob.ts` | Agent setup from a repository's files. |
+| `src/github.ts` | The GitHub API (CLI only; the library never goes online). |
+| `src/git.ts` | Streams `git log` and friends (with `src/github.ts`, the only modules that run programs). |
 | `src/stats.ts`, `src/report.ts` | Counting, and text, Markdown and JSON output (escapes untrusted text). |
 | `src/cli.ts` | The command line. |
 

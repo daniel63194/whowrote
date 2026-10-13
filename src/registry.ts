@@ -1,4 +1,5 @@
 import { REGISTRY } from './registry-data.js';
+import { globToRegExp } from './glob.js';
 import { candidateLogins, looksLikeBot } from './identity.js';
 import type { Identity, RegistryEntry, Scope, Tool } from './types.js';
 
@@ -12,6 +13,9 @@ export interface CompiledTool {
   markers: RegExp[];
   models: RegExp[];
   footers: { re: RegExp; scope: Scope }[];
+  branches: RegExp[];
+  hints: { res: RegExp[]; in: 'message' | 'branch'; note: string }[];
+  files: { glob: string; re: RegExp }[];
 }
 
 const compiled: CompiledTool[] = REGISTRY.map((e) => ({
@@ -21,6 +25,9 @@ const compiled: CompiledTool[] = REGISTRY.map((e) => ({
   markers: (e.nameMarkers ?? []).map((p) => new RegExp(p, 'iu')),
   models: e.models.map((p) => new RegExp(p, 'iu')),
   footers: e.footers.map((f) => ({ re: new RegExp(f.pattern, 'iu'), scope: f.scope ?? 'code' })),
+  branches: (e.branches ?? []).map((p) => new RegExp(p, 'iu')),
+  hints: (e.hints ?? []).map((h) => ({ res: h.all.map((p) => new RegExp(p, 'imu')), in: h.in ?? 'message', note: h.note })),
+  files: (e.files ?? []).map((glob) => ({ glob, re: globToRegExp(glob) })),
 }));
 
 const byId = new Map(compiled.map((c) => [c.tool.id, c]));
@@ -134,4 +141,45 @@ export function toolNamedAtStart(text: string): CompiledTool | undefined {
     return c;
   }
   return undefined;
+}
+
+/** The tool that creates branches named like this on its own (`copilot/…`, `claude/…`), if any. */
+export function branchTool(branch: string): CompiledTool | undefined {
+  const b = branch.slice(0, 300);
+  return compiled.find((c) => c.branches.some((re) => re.test(b)));
+}
+
+/** Weak signals in a branch name or a message: registry hints whose patterns all match. */
+export function hintsIn(where: 'message' | 'branch', text: string): { tool: CompiledTool; note: string; excerpt: string }[] {
+  const t = text.length > 200_000 ? text.slice(0, 200_000) : text;
+  const out: { tool: CompiledTool; note: string; excerpt: string }[] = [];
+  for (const c of compiled) {
+    for (const h of c.hints) {
+      if (h.in !== where) continue;
+      const first = h.res[0]!.exec(t);
+      if (first && h.res.slice(1).every((re) => re.test(t))) out.push({ tool: c, note: h.note, excerpt: where === 'branch' ? t : first[0] });
+    }
+  }
+  return out;
+}
+
+/** Instruction files several agents read, so they can't be credited to one tool. */
+export const SHARED_AGENT_FILES = Object.freeze({
+  name: 'Shared agent instructions',
+  url: 'https://agents.md',
+  files: ['**/AGENTS.md', '**/AGENT.md'],
+});
+const sharedFiles = SHARED_AGENT_FILES.files.map((glob) => ({ glob, re: globToRegExp(glob) }));
+
+/** Which AI tool a repository file configures: `CLAUDE.md` → Claude, `AGENTS.md` → shared. */
+export function configFileOwner(path: string): { tool?: CompiledTool; shared?: true } | undefined {
+  const p = path.replace(/^\.\//, '');
+  for (const c of compiled) if (c.files.some((f) => f.re.test(p))) return { tool: c };
+  if (sharedFiles.some((f) => f.re.test(p))) return { shared: true };
+  return undefined;
+}
+
+/** Every agent config glob, for asking git which commits changed one. */
+export function agentConfigGlobs(): string[] {
+  return [...compiled.flatMap((c) => c.files.map((f) => f.glob)), ...SHARED_AGENT_FILES.files];
 }

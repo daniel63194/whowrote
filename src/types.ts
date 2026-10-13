@@ -4,9 +4,11 @@ export type ToolKind = 'ai-agent' | 'ai-reviewer' | 'bot';
 /**
  * The overall answer for a commit, pull request or account.
  *
- * - `human`: nothing disclosed AI involvement or automation. This is not proof that a person wrote it.
+ * - `human`: no AI involvement or automation is disclosed. This is not proof that a person wrote it;
+ *   reports call it "No AI disclosed". `declaredHuman` is true when the author also declared that no AI
+ *   was used (`AI-assisted: no`, or an attribution record that credits only people).
  * - `ai-assisted`: a person is the author and AI involvement is disclosed (an AI co-author, a session
- *   trailer, a "Generated with …" footer, an AI-applied review suggestion).
+ *   trailer, a "Generated with …" footer, an agent's branch, an attribution note).
  * - `ai-agent`: an AI agent's own identity is the author (an agent account such as Copilot or Devin, or
  *   an automation account whose change discloses an AI agent).
  * - `bot`: an automation account (Dependabot, Renovate, GitHub Actions, any `[bot]` account) with no AI
@@ -15,7 +17,19 @@ export type ToolKind = 'ai-agent' | 'ai-reviewer' | 'bot';
 export type Verdict = 'human' | 'ai-assisted' | 'ai-agent' | 'bot';
 
 /** Where a piece of evidence was found. */
-export type Signal = 'author' | 'committer' | 'co-author' | 'trailer' | 'footer' | 'name-marker';
+export type Signal =
+  | 'author'
+  | 'committer'
+  | 'co-author'
+  | 'trailer'
+  | 'footer'
+  | 'name-marker'
+  /** The branch an agent created: a pull request's head branch, or the branch in a merge commit's message. */
+  | 'branch'
+  /** The author of the pull request a commit came from. */
+  | 'pr-author'
+  /** An attribution record in git notes (git-ai, Agent Trace). */
+  | 'note';
 
 /**
  * What the evidence covers. `message` evidence says only that the commit message or PR description was
@@ -39,18 +53,40 @@ export interface Identity {
 /** An identity, or a string such as `Jane Doe <jane@example.com>`, `jane@example.com` or `dependabot[bot]`. */
 export type IdentityInput = Identity | string;
 
+/** What is known about the pull request a commit came from (for example a squash merge). */
+export interface PullRequestContext {
+  author?: IdentityInput | null | undefined;
+  title?: string | null | undefined;
+  body?: string | null | undefined;
+  /** The pull request's head branch, e.g. `copilot/fix-login`. */
+  branch?: string | null | undefined;
+}
+
 export interface CommitInput {
   message?: string | null | undefined;
   author?: IdentityInput | null | undefined;
   committer?: IdentityInput | null | undefined;
+  /**
+   * Git notes attached to the commit, e.g. from `git log --notes=ai --format=%N`. git-ai authorship logs
+   * and Agent Trace records are read; anything else is ignored.
+   */
+  notes?: string | readonly string[] | null | undefined;
+  /** The pull request the commit came from, when known (whowrote's `--github` option fetches it). */
+  pullRequest?: PullRequestContext | null | undefined;
+  /** Paths the commit changed. Only used for hints (e.g. "changes CLAUDE.md"). */
+  files?: readonly string[] | null | undefined;
 }
 
 export interface PullRequestInput {
   author?: IdentityInput | null | undefined;
   title?: string | null | undefined;
   body?: string | null | undefined;
-  /** The pull request's commits. Optional: without them only the author and the description are used. */
+  /** The head branch, e.g. `copilot/fix-login`. */
+  branch?: string | null | undefined;
+  /** The pull request's commits. Optional: without them only the author, branch and description are used. */
   commits?: readonly (CommitInput | GitHubCommit)[] | null | undefined;
+  /** Paths the pull request changed. Only used for hints. */
+  files?: readonly string[] | null | undefined;
 }
 
 /** The subset of a GitHub REST API commit object that whowrote reads. */
@@ -69,6 +105,7 @@ export interface GitHubPullRequest {
   user?: { login?: string | null; type?: string | null } | null;
   title?: string | null;
   body?: string | null;
+  head?: { ref?: string | null } | null;
 }
 
 /** A tool from the registry, without its matching rules. */
@@ -84,36 +121,67 @@ export interface Tool {
 /** One reason for a verdict. */
 export interface Evidence {
   signal: Signal;
-  /** The text that matched: an identity, a trailer line or a short excerpt. Taken verbatim from the input. */
+  /** The text that matched: an identity, a trailer line, a branch or a short excerpt. Taken from the input. */
   value: string;
   /** Registry id of the tool, when it is known. Absent for unlisted bots and unnamed AI tools. */
   tool?: string;
-  /** Whether this evidence points to AI or to automation. */
-  kind: 'ai' | 'bot';
+  /** What this evidence points to: AI, automation, or a person's declaration that no AI was used. */
+  kind: 'ai' | 'bot' | 'human';
   scope: Scope;
   /** The model, when the evidence names one (e.g. `Claude Opus 4.6` or `openai/gpt-5.5`). */
   model?: string;
+  /** Lines attributed to the tool, when an attribution note says. */
+  lines?: number;
+}
+
+/**
+ * A weak signal: something that often goes with AI use but proves nothing on its own (a change to
+ * `CLAUDE.md`, a pull request layout an agent uses by default). Hints never change the verdict.
+ */
+export interface Hint {
+  /** `agent-config` (changes a file that configures an AI tool), `branch` or `text`. */
+  hint: 'agent-config' | 'branch' | 'text';
+  /** What matched: a path, a branch or a short excerpt. */
+  value: string;
+  /** Why it is a hint, in a few words. */
+  note: string;
+  /** Registry id of the tool it points to, if any. */
+  tool?: string;
 }
 
 /** A registry tool involved in the result. */
 export interface ToolUse extends Tool {
   signals: Signal[];
   models: string[];
+  /** Lines attributed to the tool by attribution notes, when there are any. */
+  lines?: number;
 }
 
 export interface Result {
   verdict: Verdict;
   /** `true` when the verdict is `ai-assisted` or `ai-agent`. */
   ai: boolean;
+  /** `true` when the verdict is `human` and the author declared that no AI was used. */
+  declaredHuman: boolean;
   /** Registry tools that contributed to the verdict, in order of first appearance. */
   tools: ToolUse[];
   /** Everything that matched, including evidence that does not affect the verdict. */
   evidence: Evidence[];
+  /** Weak signals, reported separately. They never change the verdict. */
+  hints: Hint[];
 }
 
 export interface FooterRule {
   pattern: string;
   scope?: Scope;
+}
+
+export interface HintRule {
+  /** Regular expressions that must all match (case-insensitive, `^` and `$` match at line breaks). */
+  all: string[];
+  /** Where to look: the commit message or PR description (default), or the branch name. */
+  in?: 'message' | 'branch';
+  note: string;
 }
 
 /** A registry entry exactly as stored in `registry/<id>.json`. */
@@ -125,12 +193,19 @@ export interface RegistryEntry extends Tool {
   nameMarkers?: string[];
   trailers: string[];
   footers: FooterRule[];
+  /** Branch names the tool creates on its own (regular expressions), e.g. `^copilot/`. */
+  branches?: string[];
+  /** Files that configure the tool in a repository (simple globs), e.g. `**\/CLAUDE.md`. */
+  files?: string[];
+  hints?: HintRule[];
   models: string[];
   evidence: string[];
   examples: RegistryExample[];
 }
 
 export type RegistryExample =
-  | { commit: CommitInput; verdict: Verdict; models?: string[] }
-  | { pullRequest: PullRequestInput; verdict: Verdict; models?: string[] }
-  | { actor: IdentityInput; verdict: Verdict; models?: string[] };
+  | { commit: CommitInput; verdict: Verdict; models?: string[]; hint?: boolean }
+  | { pullRequest: PullRequestInput; verdict: Verdict; models?: string[]; hint?: boolean }
+  | { actor: IdentityInput; verdict: Verdict; models?: string[] }
+  /** Repository files that show the tool is set up. */
+  | { files: string[]; setup: boolean };

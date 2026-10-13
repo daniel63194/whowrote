@@ -1,0 +1,31 @@
+{
+  "id": "kiro",
+  "name": "Kiro",
+  "vendor": "Amazon Web Services",
+  "kind": "ai-agent",
+  "url": "https://kiro.dev",
+  "description": "Kiro, the agentic IDE. Recognised by its steering and spec files; its commit signals still need evidence.",
+  "aliases": [
+    "kiro"
+  ],
+  "logins": [],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "files": [
+    ".kiro/**"
+  ],
+  "models": [],
+  "evidence": [
+    "https://kiro.dev/docs/steering/"
+  ],
+  "examples": [
+    {
+      "files": [
+        ".kiro/steering/product.md"
+      ],
+      "setup": true
+    }
+  ]
+}

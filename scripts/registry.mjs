@@ -19,7 +19,8 @@ const SCOPES = ['code', 'message'];
 const FIELDS = {
   id: 'string', name: 'string', vendor: 'string', kind: 'string', url: 'string', description: 'string',
   aliases: 'strings', logins: 'strings', emails: 'strings', names: 'strings', nameMarkers: 'strings?',
-  trailers: 'strings', footers: 'array', models: 'strings', evidence: 'strings', examples: 'array',
+  trailers: 'strings', footers: 'array', branches: 'strings?', files: 'strings?', hints: 'array?',
+  models: 'strings', evidence: 'strings', examples: 'array',
 };
 // Trailer keys that whowrote already reads for every tool (see src/classify.ts).
 const RESERVED_TRAILERS = ['co-authored-by', 'assisted-by', 'ai-assisted', 'ai-assisted-by', 'agent-assisted', 'generated-by', 'made-with', 'co-developed-by'];
@@ -40,13 +41,14 @@ export function loadRegistry() {
     errors.push(...validateEntry(entry, file).map((e) => `${where}: ${e}`));
     entries.push(entry);
   }
-  const seen = { id: new Map(), login: new Map(), email: new Map(), trailer: new Map(), alias: new Map() };
+  const seen = { id: new Map(), login: new Map(), email: new Map(), trailer: new Map(), alias: new Map(), file: new Map() };
   for (const e of entries) {
     claim(seen.id, e.id, e.id, 'id', errors);
     for (const l of e.logins ?? []) claim(seen.login, l.toLowerCase(), e.id, `login "${l}"`, errors);
     for (const m of e.emails ?? []) claim(seen.email, m.toLowerCase(), e.id, `email "${m}"`, errors);
     for (const t of e.trailers ?? []) claim(seen.trailer, t.toLowerCase(), e.id, `trailer "${t}"`, errors);
     for (const a of e.aliases ?? []) claim(seen.alias, a, e.id, `alias "${a}"`, errors);
+    for (const f of e.files ?? []) claim(seen.file, f, e.id, `file "${f}"`, errors);
   }
   if (errors.length) {
     console.error(`Registry has ${errors.length} problem(s):\n  ${errors.join('\n  ')}`);
@@ -90,8 +92,23 @@ function validateEntry(e, file) {
     if (!/^[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*$/.test(t)) errs.push(`trailer "${t}" is not a valid trailer key`);
     if (RESERVED_TRAILERS.includes(t.toLowerCase())) errs.push(`trailer "${t}" is read for every tool already; remove it`);
   }
-  const signals = e.logins.length + e.emails.length + e.names.length + (e.nameMarkers?.length ?? 0) + e.trailers.length + e.footers.length + e.aliases.length;
-  if (signals === 0) errs.push('needs at least one signal (logins, emails, names, nameMarkers, trailers, footers or aliases)');
+  const signals = [e.logins, e.emails, e.names, e.nameMarkers, e.trailers, e.footers, e.aliases, e.branches, e.files, e.hints].reduce((n, a) => n + (a?.length ?? 0), 0);
+  if (signals === 0) errs.push('needs at least one signal (logins, emails, names, nameMarkers, trailers, footers, branches, files, hints or aliases)');
+  for (const p of e.branches ?? []) errs.push(...checkPattern(p, false));
+  for (const f of e.files ?? []) {
+    if (!/^(?:\*\*\/)?[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*(?:\/\*\*)?$|^(?:[A-Za-z0-9._-]+\/)+\*\.[A-Za-z0-9.]+$/.test(f)) {
+      errs.push(`file "${f}" must be a path, optionally starting with **/ or ending with /** (e.g. **/CLAUDE.md, .cursor/**)`);
+    }
+  }
+  for (const [i, h] of (e.hints ?? []).entries()) {
+    if (typeof h !== 'object' || h === null || !Array.isArray(h.all) || h.all.length === 0 || typeof h.note !== 'string' || h.note.trim() === '') {
+      errs.push(`hints[${i}] must be { "all": ["pattern", …], "note": "…" }`);
+      continue;
+    }
+    for (const key of Object.keys(h)) if (!['all', 'in', 'note'].includes(key)) errs.push(`unknown hint field "${key}"`);
+    if (h.in !== undefined && !['message', 'branch'].includes(h.in)) errs.push(`hints[${i}].in must be "message" or "branch"`);
+    for (const p of h.all) errs.push(...checkPattern(p, false));
+  }
   for (const p of [...e.names, ...(e.nameMarkers ?? [])]) errs.push(...checkPattern(p, false));
   for (const p of e.models) {
     errs.push(...checkPattern(p, false));
@@ -105,9 +122,14 @@ function validateEntry(e, file) {
   }
   if (e.examples.length === 0) errs.push('"examples" needs at least one example');
   e.examples.forEach((x, i) => {
-    const kinds = ['commit', 'pullRequest', 'actor'].filter((k) => x && k in x);
-    if (kinds.length !== 1) errs.push(`examples[${i}] needs exactly one of "commit", "pullRequest" or "actor"`);
-    if (!VERDICTS.includes(x?.verdict)) errs.push(`examples[${i}].verdict must be one of ${VERDICTS.join(', ')}`);
+    const kinds = ['commit', 'pullRequest', 'actor', 'files'].filter((k) => x && k in x);
+    if (kinds.length !== 1) errs.push(`examples[${i}] needs exactly one of "commit", "pullRequest", "actor" or "files"`);
+    if (kinds[0] === 'files') {
+      if (!Array.isArray(x.files) || x.files.some((f) => typeof f !== 'string')) errs.push(`examples[${i}].files must be a list of paths`);
+      if (typeof x.setup !== 'boolean') errs.push(`examples[${i}].setup must be true (the files show the tool is set up) or false`);
+    } else if (!VERDICTS.includes(x?.verdict)) {
+      errs.push(`examples[${i}].verdict must be one of ${VERDICTS.join(', ')}`);
+    }
   });
   return errs;
 }
@@ -152,6 +174,8 @@ function readmeTable(entries) {
       ...(e.names.length ? ['name pattern'] : []),
       ...(e.nameMarkers?.length ? ['name marker'] : []),
       ...(e.footers.length ? [`${e.footers.length} footer${e.footers.length > 1 ? 's' : ''}`] : []),
+      ...(e.branches ?? []).map((b) => `branch \`${b.replace(/^\^/, '')}…\``),
+      ...(e.files?.length ? [`\`${e.files[0]}\`${e.files.length > 1 ? ` (+${e.files.length - 1} more config path${e.files.length > 2 ? 's' : ''})` : ''}`] : []),
     ];
     return `| [${e.name}](${e.url}) | ${e.vendor} | ${KIND_LABEL[e.kind]} | ${signals.join(', ').replace(/\|/g, '\\|')} | [${e.id}](registry/${e.id}.json) |`;
   });

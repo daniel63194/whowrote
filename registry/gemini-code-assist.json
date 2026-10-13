@@ -15,6 +15,10 @@
   "names": [],
   "trailers": [],
   "footers": [],
+  "files": [
+    ".gemini/config.yaml",
+    ".gemini/styleguide.md"
+  ],
   "models": [],
   "evidence": [
     "https://developers.google.com/gemini-code-assist/docs/review-github-code",
@@ -27,6 +31,12 @@
         "message": "Update packages/core/src/tools/shell.ts\n\nCo-authored-by: gemini-code-assist[bot] <176961590+gemini-code-assist[bot]@users.noreply.github.com>"
       },
       "verdict": "ai-assisted"
+    },
+    {
+      "files": [
+        ".gemini/styleguide.md"
+      ],
+      "setup": true
     }
   ]
 }

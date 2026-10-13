@@ -288,6 +288,20 @@ describe('errors and safety', () => {
     expect(n).toBe(2);
   });
 
+  // `| true` closes the pipe before the CLI has started, so every write hits EPIPE.
+  it.skipIf(process.platform === 'win32')('stops quietly when the output pipe closes', () => {
+    for (const cmd of ['tools', '--commits', 'explain HEAD', '--fail-on ai']) {
+      const r = spawnSync('bash', ['-c', `{ "$NODE" "$CLI" ${cmd}; echo "exit=$?" >&2; } | true`], {
+        cwd: repo,
+        encoding: 'utf8',
+        env: { ...process.env, ...GIT_ENV, NODE: process.execPath, CLI, NO_COLOR: '1', GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' },
+      });
+      expect(r.stderr, cmd).not.toContain('EPIPE');
+      // --fail-on still decides the exit code.
+      expect(r.stderr.trim().split('\n').pop(), cmd).toBe(cmd.startsWith('--fail-on') ? 'exit=1' : 'exit=0');
+    }
+  });
+
   it('prints help and version', () => {
     expect(run(['--help']).stdout).toContain('Usage:');
     expect(run(['-v']).stdout.trim()).toMatch(/^\d+\.\d+\.\d+/);

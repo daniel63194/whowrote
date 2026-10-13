@@ -1,0 +1,33 @@
+{
+  "id": "factory-droid",
+  "name": "Factory Droid",
+  "vendor": "Factory",
+  "kind": "ai-agent",
+  "url": "https://factory.ai",
+  "description": "Factory's Droid agents, working through the factory-droid GitHub app.",
+  "aliases": [
+    "droid",
+    "factory droid"
+  ],
+  "logins": [
+    "factory-droid[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://docs.factory.ai",
+    "https://github.com/zed-industries/zed/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "docs: update keybindings\n\nCo-authored-by: factory-droid[bot] <138933559+factory-droid[bot]@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+name: Wrong verdict
+description: A commit or pull request was classified wrongly (for example a person counted as an AI tool, or a disclosed AI commit counted as human).
+labels: ['misclassified']
+body:
+  - type: markdown
+    attributes:
+      value: Thanks! Misclassification reports are how the patterns get better.
+  - type: input
+    id: link
+    attributes:
+      label: Commit or pull request
+      description: A link to a public commit or pull request, so it can be reproduced.
+      placeholder: https://github.com/owner/repo/commit/abc123
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: whowrote explain output
+      description: The output of `npx whowrote explain <sha>` (or `whowrote pr` for a pull request).
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: Expected verdict
+      placeholder: human, ai-assisted, ai-agent or bot
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+  - type: input
+    id: version
+    attributes:
+      label: whowrote version
+      placeholder: 0.1.0
+    validations:
+      required: true

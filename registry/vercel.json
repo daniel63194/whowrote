@@ -1,0 +1,30 @@
+{
+  "id": "vercel",
+  "name": "Vercel",
+  "vendor": "Vercel",
+  "kind": "bot",
+  "url": "https://vercel.com",
+  "description": "Deployment bot.",
+  "aliases": [],
+  "logins": [
+    "vercel[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/vercel",
+    "https://github.com/vercel/next.js/commits/canary"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "vercel[bot] <35613825+vercel[bot]@users.noreply.github.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

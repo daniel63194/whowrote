@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/daniel63194/whowrote/discussions
+    about: Ask how to use whowrote, or propose bigger changes.
+  - name: Report a vulnerability in whowrote
+    url: https://github.com/daniel63194/whowrote/security/advisories/new
+    about: Please report vulnerabilities privately, not as public issues.

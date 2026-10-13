@@ -1,0 +1,32 @@
+{
+  "id": "ellipsis",
+  "name": "Ellipsis",
+  "vendor": "Ellipsis",
+  "kind": "ai-reviewer",
+  "url": "https://www.ellipsis.dev",
+  "description": "AI code reviews on pull requests. Applying one of its suggestions makes it a co-author.",
+  "aliases": [
+    "ellipsis"
+  ],
+  "logins": [
+    "ellipsis-dev[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://docs.ellipsis.dev",
+    "https://github.com/cline/cline/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Apply suggestion from code review\n\nCo-authored-by: ellipsis-dev[bot] <65095814+ellipsis-dev[bot]@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

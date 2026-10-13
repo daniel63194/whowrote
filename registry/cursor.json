@@ -1,0 +1,72 @@
+{
+  "id": "cursor",
+  "name": "Cursor",
+  "vendor": "Anysphere",
+  "kind": "ai-agent",
+  "url": "https://cursor.com",
+  "description": "Cursor's agent in the editor and CLI, and Cursor cloud (background) agents.",
+  "aliases": [
+    "cursor",
+    "cursor agent"
+  ],
+  "logins": [],
+  "emails": [
+    "cursoragent@cursor.com"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [
+    {
+      "pattern": "\\bcursor\\.com/(?:background-agent\\?bcId=|agents[/?])"
+    },
+    {
+      "pattern": "\\bcursor\\.com/(?:assets/images/)?open-in-cursor"
+    }
+  ],
+  "models": [],
+  "evidence": [
+    "https://cursor.com/docs/integrations/git",
+    "https://github.com/getsentry/sentry/commits/master"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Handle empty config\n\nCo-authored-by: Cursor Agent <cursoragent@cursor.com>"
+      },
+      "verdict": "ai-assisted"
+    },
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Handle empty config\n\nMade-with: Cursor"
+      },
+      "verdict": "ai-assisted"
+    },
+    {
+      "commit": {
+        "author": "Cursor Agent <cursoragent@cursor.com>",
+        "message": "Handle empty config"
+      },
+      "verdict": "ai-agent"
+    },
+    {
+      "pullRequest": {
+        "author": {
+          "login": "janedoe",
+          "type": "User"
+        },
+        "title": "Handle empty config",
+        "body": "Adds a guard.\n\n<a href=\"https://cursor.com/background-agent?bcId=bc-1234\">Open in Cursor</a>"
+      },
+      "verdict": "ai-assisted"
+    },
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Handle empty config\n\nMade with [Cursor](https://cursor.com)"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

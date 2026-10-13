@@ -1,0 +1,31 @@
+{
+  "id": "cline",
+  "name": "Cline",
+  "vendor": "Cline",
+  "kind": "ai-agent",
+  "url": "https://cline.bot",
+  "description": "The open source Cline agent for VS Code and the terminal.",
+  "aliases": [
+    "cline"
+  ],
+  "logins": [
+    "cline-agent"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/cline/cline/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "fix: repair webview rebase\n\nCo-authored-by: Cline Agent <cline-agent@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

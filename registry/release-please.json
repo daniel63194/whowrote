@@ -1,0 +1,29 @@
+{
+  "id": "release-please",
+  "name": "release-please",
+  "vendor": "Google",
+  "kind": "bot",
+  "url": "https://github.com/googleapis/release-please",
+  "description": "Release pull requests.",
+  "aliases": [],
+  "logins": [
+    "release-please[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/release-please"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "release-please[bot] <55107282+release-please[bot]@users.noreply.github.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

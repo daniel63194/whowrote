@@ -1,0 +1,53 @@
+{
+  "id": "devin",
+  "name": "Devin",
+  "vendor": "Cognition",
+  "kind": "ai-agent",
+  "url": "https://devin.ai",
+  "description": "Devin, the autonomous software engineer. Opens pull requests from its GitHub app and links the Devin session.",
+  "aliases": [
+    "devin",
+    "devin ai"
+  ],
+  "logins": [
+    "devin-ai-integration[bot]"
+  ],
+  "emails": [],
+  "names": [
+    "^Devin AI$"
+  ],
+  "trailers": [],
+  "footers": [
+    {
+      "pattern": "\\bapp\\.devin\\.ai/sessions/"
+    }
+  ],
+  "models": [],
+  "evidence": [
+    "https://docs.devin.ai/integrations/gh",
+    "https://github.com/calcom/cal.com/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "devin-ai-integration[bot] <158243242+devin-ai-integration[bot]@users.noreply.github.com>",
+        "message": "Add booking limits\n\nCo-authored-by: Jane Doe <jane@example.com>"
+      },
+      "verdict": "ai-agent"
+    },
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Add booking limits (#22)\n\nLink to Devin run: https://app.devin.ai/sessions/0123456789abcdef\nRequested by: @janedoe\n\nCo-authored-by: Devin AI <158243242+devin-ai-integration[bot]@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    },
+    {
+      "commit": {
+        "author": "Devin Griffin <devin@example.com>",
+        "message": "Update docs"
+      },
+      "verdict": "human"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "id": "github-copilot-review",
+  "name": "Copilot code review",
+  "vendor": "GitHub",
+  "kind": "ai-reviewer",
+  "url": "https://docs.github.com/en/copilot/concepts/agents/code-review",
+  "description": "Copilot reviewing pull requests. Applying one of its suggestions makes it a co-author.",
+  "aliases": [
+    "copilot code review"
+  ],
+  "logins": [
+    "copilot-pull-request-reviewer[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://docs.github.com/en/copilot/concepts/agents/code-review"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Mona Lisa <mona@example.com>",
+        "message": "Apply suggestion from review\n\nCo-authored-by: copilot-pull-request-reviewer[bot] <175728472+copilot-pull-request-reviewer[bot]@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

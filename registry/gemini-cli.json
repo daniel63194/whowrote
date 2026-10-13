@@ -1,0 +1,33 @@
+{
+  "id": "gemini-cli",
+  "name": "Gemini CLI",
+  "vendor": "Google",
+  "kind": "ai-agent",
+  "url": "https://github.com/google-gemini/gemini-cli",
+  "description": "Gemini CLI, including its GitHub Actions integration that commits as gemini-cli[bot].",
+  "aliases": [
+    "gemini cli",
+    "gemini-cli"
+  ],
+  "logins": [
+    "gemini-cli[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/google-github-actions/run-gemini-cli",
+    "https://github.com/google-gemini/gemini-cli/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "gemini-cli[bot] <218312386+gemini-cli[bot]@users.noreply.github.com>",
+        "message": "docs: fix broken links"
+      },
+      "verdict": "ai-agent"
+    }
+  ]
+}

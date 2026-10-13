@@ -1,0 +1,32 @@
+{
+  "id": "cubic",
+  "name": "cubic",
+  "vendor": "cubic",
+  "kind": "ai-reviewer",
+  "url": "https://cubic.dev",
+  "description": "AI code reviews on pull requests. Applying one of its suggestions makes it a co-author.",
+  "aliases": [
+    "cubic"
+  ],
+  "logins": [
+    "cubic-dev-ai[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://docs.cubic.dev",
+    "https://github.com/calcom/cal.com/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Apply suggestion from code review\n\nCo-authored-by: cubic-dev-ai[bot] <191113872+cubic-dev-ai[bot]@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

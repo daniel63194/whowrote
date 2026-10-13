@@ -1,0 +1,29 @@
+{
+  "id": "all-contributors",
+  "name": "All Contributors",
+  "vendor": "All Contributors",
+  "kind": "bot",
+  "url": "https://allcontributors.org",
+  "description": "Updates contributor lists in READMEs.",
+  "aliases": [],
+  "logins": [
+    "allcontributors[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/allcontributors"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "allcontributors[bot] <46447321+allcontributors[bot]@users.noreply.github.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "pre-commit-ci",
+  "name": "pre-commit.ci",
+  "vendor": "pre-commit.ci",
+  "kind": "bot",
+  "url": "https://pre-commit.ci",
+  "description": "Autofixes and hook updates for pre-commit.",
+  "aliases": [],
+  "logins": [
+    "pre-commit-ci[bot]"
+  ],
+  "emails": [],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/pre-commit-ci"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "github",
+  "name": "GitHub",
+  "vendor": "GitHub",
+  "kind": "bot",
+  "url": "https://github.com",
+  "description": "GitHub itself (web-flow), e.g. as the committer of commits made in the web interface or by the merge button.",
+  "aliases": [],
+  "logins": [
+    "web-flow"
+  ],
+  "emails": [
+    "noreply@github.com"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "committer": "GitHub <noreply@github.com>",
+        "message": "Update README.md"
+      },
+      "verdict": "human"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "imgbot",
+  "name": "Imgbot",
+  "vendor": "Imgbot",
+  "kind": "bot",
+  "url": "https://imgbot.net",
+  "description": "Image compression pull requests.",
+  "aliases": [],
+  "logins": [
+    "imgbot[bot]",
+    "imgbotapp"
+  ],
+  "emails": [
+    "imgbothelp@gmail.com"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/apps/imgbot"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "ImgBotApp <ImgBotHelp@gmail.com>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

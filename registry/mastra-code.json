@@ -1,0 +1,45 @@
+{
+  "id": "mastra-code",
+  "name": "Mastra Code",
+  "vendor": "Mastra",
+  "kind": "ai-agent",
+  "url": "https://mastra.ai",
+  "description": "Mastra's coding agent. Names the model in its co-author line, e.g. \"Mastra Code (openai/gpt-5.5)\".",
+  "aliases": [
+    "mastra code"
+  ],
+  "logins": [],
+  "emails": [
+    "noreply@mastra.ai"
+  ],
+  "names": [
+    "^Mastra Code\\b"
+  ],
+  "trailers": [],
+  "footers": [],
+  "models": [
+    "^Mastra Code \\((?<model>[^()]+)\\)$"
+  ],
+  "evidence": [
+    "https://github.com/mastra-ai/mastra/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "fix(memory): trim thread titles\n\nCo-authored-by: Mastra Code (anthropic/claude-fable-5) <noreply@mastra.ai>"
+      },
+      "verdict": "ai-assisted",
+      "models": [
+        "anthropic/claude-fable-5"
+      ]
+    },
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "fix: trim titles\n\n🤖 Generated with [Mastra Code](https://mastra.ai)"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

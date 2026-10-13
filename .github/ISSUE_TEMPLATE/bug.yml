@@ -1,0 +1,26 @@
+name: Bug
+description: Something doesn't work (a crash, wrong output format, a CLI option that misbehaves).
+labels: ['bug']
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran and what it printed.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versions
+      description: whowrote, Node.js, git and operating system.
+      placeholder: whowrote 0.1.0, Node 24.1.0, git 2.51, macOS 26
+    validations:
+      required: true

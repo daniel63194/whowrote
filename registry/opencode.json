@@ -1,0 +1,41 @@
+{
+  "id": "opencode",
+  "name": "opencode",
+  "vendor": "SST",
+  "kind": "ai-agent",
+  "url": "https://opencode.ai",
+  "description": "The open source opencode agent in the terminal, and its GitHub agent (opencode-agent[bot]).",
+  "aliases": [
+    "opencode"
+  ],
+  "logins": [
+    "opencode-agent[bot]"
+  ],
+  "emails": [
+    "noreply@opencode.ai"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://opencode.ai/docs/github",
+    "https://github.com/sst/opencode/commits/dev"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "fix: keep scroll position\n\n🤖 Generated with [opencode](https://opencode.ai)\n\nCo-Authored-By: opencode <noreply@opencode.ai>"
+      },
+      "verdict": "ai-assisted"
+    },
+    {
+      "commit": {
+        "author": "opencode-agent[bot] <219766164+opencode-agent[bot]@users.noreply.github.com>",
+        "message": "fix(app): include subagent sessions in cost (#55052)"
+      },
+      "verdict": "ai-agent"
+    }
+  ]
+}

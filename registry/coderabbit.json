@@ -1,0 +1,34 @@
+{
+  "id": "coderabbit",
+  "name": "CodeRabbit",
+  "vendor": "CodeRabbit",
+  "kind": "ai-reviewer",
+  "url": "https://coderabbit.ai",
+  "description": "AI code reviews on pull requests. Can also commit docstrings and unit tests. Applying one of its suggestions makes it a co-author.",
+  "aliases": [
+    "coderabbit"
+  ],
+  "logins": [
+    "coderabbitai[bot]"
+  ],
+  "emails": [
+    "noreply@coderabbit.ai"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://docs.coderabbit.ai",
+    "https://github.com/mastra-ai/mastra/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Jane Doe <jane@example.com>",
+        "message": "Apply suggestion from code review\n\nCo-authored-by: coderabbitai[bot] <136622811+coderabbitai[bot]@users.noreply.github.com>"
+      },
+      "verdict": "ai-assisted"
+    }
+  ]
+}

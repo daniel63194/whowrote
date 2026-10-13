@@ -1,0 +1,31 @@
+{
+  "id": "snyk",
+  "name": "Snyk",
+  "vendor": "Snyk",
+  "kind": "bot",
+  "url": "https://snyk.io",
+  "description": "Security fix pull requests.",
+  "aliases": [],
+  "logins": [
+    "snyk-bot"
+  ],
+  "emails": [
+    "snyk-bot@snyk.io"
+  ],
+  "names": [],
+  "trailers": [],
+  "footers": [],
+  "models": [],
+  "evidence": [
+    "https://github.com/snyk-bot"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "snyk-bot <snyk-bot@snyk.io>",
+        "message": "chore: automated update"
+      },
+      "verdict": "bot"
+    }
+  ]
+}

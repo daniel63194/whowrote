@@ -1,0 +1,117 @@
+name: whowrote - human, bot or AI agent?
+description: Label pull requests made with AI agents, and break down how much of a repository's history humans, bots and AI agents wrote.
+author: Daniel Eremeev
+branding:
+  icon: users
+  color: purple
+
+inputs:
+  command:
+    description: >-
+      `pr` classifies the pull request that triggered the workflow. `history` breaks down the repository's
+      commits. Defaults to `pr` on pull request events and `history` otherwise.
+    default: ''
+  label:
+    description: >-
+      In `pr` mode, add an `ai-assisted` or `ai-agent` label to pull requests that disclose AI involvement.
+      Needs `pull-requests: write`.
+    default: 'false'
+  fail-on:
+    description: Fail the step if the pull request (or, in `history` mode, any commit) has one of these verdicts, comma-separated (ai, ai-agent, ai-assisted, bot).
+    default: ''
+  since:
+    description: In `history` mode, only commits after this date, e.g. `90 days ago` or `2026-01-01`.
+    default: ''
+  range:
+    description: In `history` mode, the revision range to read, e.g. `v1.0.0..HEAD`. Defaults to `HEAD`.
+    default: ''
+  by:
+    description: In `history` mode, add a breakdown by week, month, quarter or year.
+    default: ''
+  summary:
+    description: Write the report to the job summary.
+    default: 'true'
+  token:
+    description: Token used to add labels.
+    default: ${{ github.token }}
+  version:
+    description: whowrote version to run. Defaults to the version of this action.
+    default: ''
+
+outputs:
+  verdict:
+    description: In `pr` mode, the pull request's verdict (human, ai-assisted, ai-agent or bot).
+    value: ${{ steps.run.outputs.verdict }}
+  ai:
+    description: In `pr` mode, `true` when the pull request discloses AI involvement.
+    value: ${{ steps.run.outputs.ai }}
+  tools:
+    description: In `pr` mode, comma-separated registry ids of the tools involved, e.g. `claude,github-copilot`.
+    value: ${{ steps.run.outputs.tools }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      # Inputs reach the script through the environment, never by interpolation.
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        COMMAND: ${{ inputs.command }}
+        LABEL: ${{ inputs.label }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        SINCE: ${{ inputs.since }}
+        RANGE: ${{ inputs.range }}
+        BY: ${{ inputs.by }}
+        SUMMARY: ${{ inputs.summary }}
+        VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ inputs.token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        REPO: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+        version="${VERSION:-$(node -p 'require(process.env.ACTION_PATH + "/package.json").version')}"
+        if [[ ! "$version" =~ ^[0-9A-Za-z.+-]+$ ]]; then
+          echo "::error::Invalid whowrote version: $version"
+          exit 2
+        fi
+        command="${COMMAND:-$([[ -n "$PR_NUMBER" ]] && echo pr || echo history)}"
+
+        args=()
+        if [[ -n "$FAIL_ON" ]]; then args+=(--fail-on "$FAIL_ON"); fi
+        if [[ "$SUMMARY" == "true" && -n "${GITHUB_STEP_SUMMARY:-}" ]]; then args+=(--summary "$GITHUB_STEP_SUMMARY"); fi
+        case "$command" in
+          pr)
+            if [[ -z "$PR_NUMBER" ]]; then
+              echo "::error::command: pr needs a pull_request or pull_request_target event"
+              exit 2
+            fi
+            args=(pr ${args[@]+"${args[@]}"})
+            ;;
+          history)
+            if [[ -n "$SINCE" ]]; then args+=(--since "$SINCE"); fi
+            if [[ -n "$BY" ]]; then args+=(--by "$BY"); fi
+            if [[ -n "$RANGE" ]]; then args+=("$RANGE"); fi
+            ;;
+          *)
+            echo "::error::command must be pr or history, not $command"
+            exit 2
+            ;;
+        esac
+
+        code=0
+        npm exec --yes --package="whowrote@$version" -- whowrote ${args[@]+"${args[@]}"} || code=$?
+        if [[ "$code" -gt 1 ]]; then exit "$code"; fi
+
+        if [[ "$command" == "pr" && "$LABEL" == "true" ]]; then
+          verdict="$(sed -n 's/^verdict=//p' "$GITHUB_OUTPUT" | tail -n 1)"
+          if [[ "$verdict" == "ai-assisted" || "$verdict" == "ai-agent" ]]; then
+            case "$verdict" in
+              ai-assisted) description="A person wrote this with an AI tool (disclosed)" ;;
+              ai-agent) description="An AI agent wrote this (disclosed)" ;;
+            esac
+            gh label create "$verdict" --repo "$REPO" --color 8250df --description "$description" 2> /dev/null || true
+            gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$verdict"
+          fi
+        fi
+        exit "$code"

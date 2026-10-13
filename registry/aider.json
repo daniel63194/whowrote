@@ -1,0 +1,47 @@
+{
+  "id": "aider",
+  "name": "Aider",
+  "vendor": "Aider",
+  "kind": "ai-agent",
+  "url": "https://aider.chat",
+  "description": "AI pair programming in the terminal. Marks its commits by appending \"(aider)\" to the author name, or adds itself as a co-author.",
+  "aliases": [
+    "aider"
+  ],
+  "logins": [],
+  "emails": [
+    "aider@aider.chat"
+  ],
+  "names": [],
+  "nameMarkers": [
+    "\\(aider\\)$"
+  ],
+  "trailers": [],
+  "footers": [],
+  "models": [
+    "^aider \\((?<model>[^()]+)\\)$"
+  ],
+  "evidence": [
+    "https://aider.chat/docs/git.html",
+    "https://github.com/Aider-AI/aider/commits/main"
+  ],
+  "examples": [
+    {
+      "commit": {
+        "author": "Paul Gauthier (aider) <paul@example.com>",
+        "message": "feat: add --dry-run"
+      },
+      "verdict": "ai-assisted"
+    },
+    {
+      "commit": {
+        "author": "Paul Gauthier <paul@example.com>",
+        "message": "feat: add --dry-run\n\nCo-authored-by: aider (anthropic/claude-sonnet-4) <aider@aider.chat>"
+      },
+      "verdict": "ai-assisted",
+      "models": [
+        "anthropic/claude-sonnet-4"
+      ]
+    }
+  ]
+}
